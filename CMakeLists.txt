@@ -1,26 +1,49 @@
 cmake_minimum_required(VERSION 3.5)
 project(information_dissemination)
 
-# 查找依赖项
+# Find required packages
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
 
-# 创建可执行文件
-add_executable(information_dissemination src/controller.cpp)
+# Generate interfaces for custom messages
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/Position.msg"
+  DEPENDENCIES std_msgs geometry_msgs
+)
 
-# 链接依赖
-ament_target_dependencies(information_dissemination rclcpp std_msgs)
+# Include directories for generated message headers
+include_directories(
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_BINARY_DIR}/include
+)
 
+# Add the executable
+add_executable(${PROJECT_NAME}_node src/controller.cpp)
+
+# Link dependencies to the executable
+ament_target_dependencies(${PROJECT_NAME}_node
+  rclcpp
+  std_msgs
+  geometry_msgs
+  visualization_msgs
+  rosidl_default_runtime
+)
+
+# Install launch files
 install(DIRECTORY launch/
   DESTINATION share/${PROJECT_NAME}/launch
 )
 
-# 安装目标
+# Install the target
 install(TARGETS
-information_dissemination
+  ${PROJECT_NAME}_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
-# 导出包
+ament_export_dependencies(rosidl_default_runtime)
+# Package configuration
 ament_package()

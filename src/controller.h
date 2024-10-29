@@ -1,4 +1,5 @@
 #include "rclcpp/rclcpp.hpp"
+#include "information_dissemination/msg/position.hpp"
 
 class Controller : public rclcpp::Node
 {
