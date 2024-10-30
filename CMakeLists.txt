@@ -22,10 +22,10 @@ include_directories(
 )
 
 # Add the executable
-add_executable(${PROJECT_NAME}_node src/controller.cpp)
+add_executable(controller src/controller.cpp)
 
 # Link dependencies to the executable
-ament_target_dependencies(${PROJECT_NAME}_node
+ament_target_dependencies(controller
   rclcpp
   std_msgs
   geometry_msgs
@@ -40,7 +40,7 @@ install(DIRECTORY launch/
 
 # Install the target
 install(TARGETS
-  ${PROJECT_NAME}_node
+  controller
   DESTINATION lib/${PROJECT_NAME}
 )
 
