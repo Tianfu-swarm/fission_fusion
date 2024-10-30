@@ -16,5 +16,5 @@ argos3 -c /experiments/information_dissemination.argos
 
 ## Manual Test Robot
 ```bash
-ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -r cmd_vel:=bot1/cmd_vel
+ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -r cmd_vel:=bot0/cmd_vel
 ```
