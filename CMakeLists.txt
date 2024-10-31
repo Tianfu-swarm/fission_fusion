@@ -5,15 +5,12 @@ project(information_dissemination)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(angles REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
 
-# Generate interfaces for custom messages
-rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/Position.msg"
-  DEPENDENCIES std_msgs geometry_msgs
-)
 
 # Include directories for generated message headers
 include_directories(
@@ -28,9 +25,12 @@ add_executable(controller src/controller.cpp)
 ament_target_dependencies(controller
   rclcpp
   std_msgs
+  nav_msgs
   geometry_msgs
   visualization_msgs
-  rosidl_default_runtime
+  tf2_geometry_msgs
+  angles
+  
 )
 
 # Install launch files
@@ -44,6 +44,5 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
-ament_export_dependencies(rosidl_default_runtime)
 # Package configuration
 ament_package()
