@@ -8,8 +8,8 @@ By purposefully triggering information to drive directed dissemination, this stu
 ## Starting the simulation environment
 
 ```bash
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/argos3:/home/tianfu/information_dissemination_ws/src/information_dissemination/lib
-export ARGOS_PLUGIN_PATH=/home/tianfu/information_dissemination_ws/src/information_dissemination/lib
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/argos3:/YOUR_WORKSPACE/PATH/src/information_dissemination/lib
+export ARGOS_PLUGIN_PATH=/YOUR_WORKSPACE/PATH/src/information_dissemination/lib
 argos3 -c /experiments/information_dissemination.argos
 ```
 
