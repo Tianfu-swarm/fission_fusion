@@ -5,7 +5,7 @@ By purposefully triggering information to drive directed dissemination, this stu
 
 # Start up
 
-## Starting the simulation environment
+## Launch simulation environment
 
 ```bash
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/argos3:/YOUR_WORKSPACE/PATH/src/information_dissemination/lib
@@ -13,8 +13,13 @@ export ARGOS_PLUGIN_PATH=/YOUR_WORKSPACE/PATH/src/information_dissemination/lib
 argos3 -c /experiments/information_dissemination.argos
 ```
 
+## Launch controller node
+```bash
+source install/setup.bash
+ros2 launch information_dissemination run.launch.py
+```
 
-## Manual Test Robot
+## Launch the manual test robotLaunch Manual Test Robot
 ```bash
 ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -r cmd_vel:=bot0/cmd_vel
 ```
