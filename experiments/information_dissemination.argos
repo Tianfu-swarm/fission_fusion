@@ -58,7 +58,7 @@
       <position method="uniform" min="-3,-3,0" max="3,3,0" />  
       <orientation method="gaussian" mean="0,0,0" std_dev="360,0,0" />
       <entity quantity="20" max_trials="100">
-        <foot-bot id="bot" rab_range="100" omnidirectional_camera_aperture="89.99">
+        <foot-bot id="bot" rab_range="100" omnidirectional_camera_aperture="89.99" rab_data_size="84">
           <controller config="argos_ros_bot" />
         </foot-bot>
       </entity>
