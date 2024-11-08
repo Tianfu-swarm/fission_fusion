@@ -19,7 +19,7 @@ source install/setup.bash
 ros2 launch information_dissemination run.launch.py
 ```
 
-## Launch the manual test robotLaunch Manual Test Robot
+## Launch manual test robot
 ```bash
 ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -r cmd_vel:=bot0/cmd_vel
 ```
