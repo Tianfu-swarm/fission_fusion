@@ -71,136 +71,33 @@ void Controller::path_pridect()
     path_predict.header.frame_id = "map";
     predict_path_publisher_->publish(path_predict);
 }
-
-void Controller::publish_robot_status()
+void Controller::publish_odometry()
 {
-    if (current_pose.header.frame_id.empty())
-    {
-        return;
-    }
+    odom.header.frame_id = "map";
+    odom.pose.pose.position = current_pose.pose.position;
+    odom.twist.twist.linear = current_vel.linear;
+    odom.twist.twist.angular = current_vel.angular;
+    odom_publisher_->publish(odom);
+}
+/*************************************************************************
+ * Estimation of target pose By received broadcast message
+**************************************************************************/
+void Controller::estimate_target_pose()
+{
 
-    RobotStatus robot_status;
+}
+/*************************************************************************
+ * Perception of target pose By its own sensors
+**************************************************************************/
+void Controller::Perceive_target_pose()
+{
     
-    robot_status.id.data = this->get_namespace();
-    robot_status.pose = current_pose;
-
-    std_msgs::msg::String status_msg;
-    // Robot ID: <robot_id>, Position: (<x>, <y>, <z>), Orientation: (<qx>, <qy>, <qz>, <qw>) //
-    status_msg.data = "Robot ID: " + robot_status.id.data +
-                      ", Position: (" + std::to_string(robot_status.pose.pose.position.x) +
-                      ", " + std::to_string(robot_status.pose.pose.position.y) +
-                      ", " + std::to_string(robot_status.pose.pose.position.z) +
-                      "), Orientation: (" + std::to_string(robot_status.pose.pose.orientation.x) +
-                      ", " + std::to_string(robot_status.pose.pose.orientation.y) +
-                      ", " + std::to_string(robot_status.pose.pose.orientation.z) +
-                      ", " + std::to_string(robot_status.pose.pose.orientation.w) + ")";
-
-    robot_status_publisher_->publish(status_msg);
 }
 
-void Controller::robot_status_callback(std_msgs::msg::String::SharedPtr msg)
+void Controller::ControlStep()
 {
-    RobotStatus received_status;
-    std::string received_data = msg->data;
-
-    std::istringstream ss(received_data);
-    std::string token;
-
-    std::getline(ss, token, ',');
-    received_status.id.data = token.substr(token.find(":") + 2);
-
-    std::getline(ss, token, ',');
-    std::string position_data = token.substr(token.find("(") + 1, token.find(")") - token.find("(") - 1);
-    std::istringstream position_stream(position_data);
-    std::vector<std::string> position_values;
-    while (std::getline(position_stream, token, ','))
-    {
-        position_values.push_back(token);
-    }
-    received_status.pose.pose.position.x = std::stod(position_values[0]);
-    received_status.pose.pose.position.y = std::stod(position_values[1]);
-    received_status.pose.pose.position.z = std::stod(position_values[2]);
-
-    std::getline(ss, token, ',');
-    std::string orientation_data = token.substr(token.find("(") + 1, token.find(")") - token.find("(") - 1);
-    std::istringstream orientation_stream(orientation_data);
-    std::vector<std::string> orientation_values;
-    while (std::getline(orientation_stream, token, ','))
-    {
-        orientation_values.push_back(token);
-    }
-    received_status.pose.pose.orientation.x = std::stod(orientation_values[0]);
-    received_status.pose.pose.orientation.y = std::stod(orientation_values[1]);
-    received_status.pose.pose.orientation.z = std::stod(orientation_values[2]);
-    received_status.pose.pose.orientation.w = std::stod(orientation_values[3]);
-
-    auto it = std::find_if(robot_status.begin(), robot_status.end(), [&](const RobotStatus &rs)
-                           { return rs.id.data == received_status.id.data; });
-
-    if (it != robot_status.end())
-    {
-        it->pose = received_status.pose;
-    }
-    else
-    {
-        robot_status.push_back(received_status);
-    }
-}
-
-void Controller::robot_status_pub_sub()
-{
-    std::string namespace_str = this->get_namespace();
-    std::string prefix = "bot";
-    size_t prefix_pos = namespace_str.find(prefix);
-    int my_id;
-    if (prefix_pos != std::string::npos)
-    {
-        std::string id_str = namespace_str.substr(prefix_pos + prefix.length());
-        my_id = std::stoi(id_str);
-    }
-
-    std::vector<int> id_group;
-    for (const auto &robot : robot_status)
-    {
-        std::string namespace_str = robot.id.data;
-        std::string prefix = "bot";
-        size_t prefix_pos = namespace_str.find(prefix);
-
-        if (prefix_pos != std::string::npos)
-        {
-            std::string id_str = namespace_str.substr(prefix_pos + prefix.length());
-            id_group.push_back(std::stoi(id_str));
-        }
-        
-    }
-
-    int missing_min_id = -1;
-    int max_id = 20;
-    for (int id = 0; id <= max_id; id++) {
-        bool found = false; 
-
-        for (const auto &id_exit : id_group) {
-            if (id == id_exit) {
-                found = true; 
-                break; 
-            }
-        }
-
-        if (!found) {
-            missing_min_id = id;
-            break; 
-        }
-    }
-    if (missing_min_id = -1)
-    {
-        // 检查最后更新的那个
-
-    }
-    else
-    {
-        if (missing_min_id == my_id)
-        {
-            publish_robot_status();
-        }
-    }
+    Controller::publish_path();
+    Controller::path_pridect();
+    Controller::publish_odometry();
+    cmd_vel_publisher_->publish(current_vel);
 }
