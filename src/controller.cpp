@@ -93,11 +93,58 @@ void Controller::Perceive_target_pose()
 {
     
 }
+void Controller::publish_rab_actuator()
+{
+    
+}
+
+void Controller::pid()
+{
+    if (target_pose.header.frame_id.empty())
+    {
+        return;
+    }
+
+    double dx = target_pose.pose.position.x - current_pose.pose.position.x;
+    double dy = target_pose.pose.position.y - current_pose.pose.position.y;
+    double distance = sqrt(dx * dx + dy * dy);
+    double angle_to_target = atan2(dy, dx);
+
+    double w = current_pose.pose.orientation.w;
+    double x = current_pose.pose.orientation.x;
+    double y = current_pose.pose.orientation.y;
+    double z = current_pose.pose.orientation.z;
+    double siny_cosp = 2.0 * (w * z + x * y);
+    double cosy_cosp = 1.0 - 2.0 * (y * y + z * z);
+    double curent_angle = atan2(siny_cosp, cosy_cosp);
+
+    double angle_error = angle_to_target - curent_angle;
+
+    double Kp_distance = 1.0; 
+    double Kp_angle = 4.0;
+
+    double v = Kp_distance * distance / 5.0;
+    double omega = Kp_angle * angle_error / 5.0;
+
+    if (distance < 0.1)
+    {
+        v = 0.0;
+        omega = 0.0;
+    }
+
+    geometry_msgs::msg::Twist cmd_msg;
+    cmd_msg.linear.x = v;
+    cmd_msg.angular.z = omega;
+    cmd_vel_publisher_->publish(cmd_msg);
+}
 
 void Controller::ControlStep()
 {
+    target_pose.header.frame_id = "map";
+    target_pose.pose.position.x = 1.0;
+    target_pose.pose.position.y = 1.0;
     Controller::publish_path();
     Controller::path_pridect();
     Controller::publish_odometry();
-    cmd_vel_publisher_->publish(current_vel);
+    Controller::pid();
 }
