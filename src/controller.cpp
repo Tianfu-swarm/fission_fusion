@@ -84,7 +84,36 @@ void Controller::publish_odometry()
 **************************************************************************/
 void Controller::estimate_target_pose()
 {
+    double min_level = 10e3;
+    for (size_t num = 0; num < rab_data.data.size() / 5; num++)
+    {
+        if (rab_data.data[5 * num] < min_level)
+        {
+            min_level = rab_data.data[5 * num];
+        }
+    }
+    multi_hop_internet = min_level = 1;
 
+    double w, x, y, z;
+    double sum_hop;
+    for (size_t num = 0; num < rab_data.data.size() / 5; num++)
+    {
+        w = 1 / rab_data.data[num * 5 + 0] * rab_data.data[num * 5 + 1];
+        x = 1 / rab_data.data[num * 5 + 0] * rab_data.data[num * 5 + 2];
+        y = 1 / rab_data.data[num * 5 + 0] * rab_data.data[num * 5 + 3];
+        z = 1 / rab_data.data[num * 5 + 0] * rab_data.data[num * 5 + 4];
+        sum_hop = sum_hop + 1 / rab_data.data[num * 5 + 0];
+    }
+    w = w / sum_hop;
+    x = x / sum_hop;
+    y = y / sum_hop;
+    z = z / sum_hop;
+    target_pose.header.frame_id = "map";
+    target_pose.pose.orientation.w = w;
+    target_pose.pose.orientation.x = x;
+    target_pose.pose.orientation.y = y;
+    target_pose.pose.orientation.z = z;
+    target_pose_publisher_->publish(target_pose);
 }
 /*************************************************************************
  * Perception of target pose By its own sensors
@@ -93,9 +122,31 @@ void Controller::Perceive_target_pose()
 {
     
 }
+/*************************************************************************
+ * Broadcasting via rab actuator
+**************************************************************************/
 void Controller::publish_rab_actuator()
 {
-    
+    if (rab_data.data.empty())
+    {
+        return;
+    }
+    else if (rab_data.data[0] == 0.0)
+    {
+        return;
+    }
+    std::cout << "get rab sensor message" << std::endl;
+    estimate_target_pose();
+
+    std_msgs::msg::Float64MultiArray rab_actuator;
+
+    rab_actuator.data.push_back(multi_hop_internet);
+    rab_actuator.data.push_back(target_pose.pose.orientation.w);
+    rab_actuator.data.push_back(target_pose.pose.orientation.x);
+    rab_actuator.data.push_back(target_pose.pose.orientation.y);
+    rab_actuator.data.push_back(target_pose.pose.orientation.z);
+
+    rab_actuator_publisher_->publish(rab_actuator);
 }
 
 void Controller::pid()
@@ -133,18 +184,16 @@ void Controller::pid()
     }
 
     geometry_msgs::msg::Twist cmd_msg;
-    cmd_msg.linear.x = v;
+    cmd_msg.linear.x = 0;
     cmd_msg.angular.z = omega;
     cmd_vel_publisher_->publish(cmd_msg);
 }
 
 void Controller::ControlStep()
 {
-    target_pose.header.frame_id = "map";
-    target_pose.pose.position.x = 1.0;
-    target_pose.pose.position.y = 1.0;
     Controller::publish_path();
     Controller::path_pridect();
     Controller::publish_odometry();
     Controller::pid();
+    Controller::publish_rab_actuator();
 }

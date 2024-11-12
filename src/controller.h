@@ -36,6 +36,7 @@ public:
         cmd_vel_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
         odom_publisher_ = this->create_publisher<nav_msgs::msg::Odometry>("odom", 10);
         rab_actuator_publisher_ = this->create_publisher<std_msgs::msg::Float64MultiArray>("rab_actuator", 10);
+        target_pose_publisher_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("target_pose", 10);
         
         //timer
         timer_ = this->create_wall_timer(
@@ -52,6 +53,7 @@ private:
     std_msgs::msg::Float64MultiArray rab_data;
     nav_msgs::msg::Path path_msg;
     nav_msgs::msg::Path path_predict;
+    double multi_hop_internet;
 
     void pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
     {
@@ -98,6 +100,7 @@ private:
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_publisher_;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_publisher_;
     rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr rab_actuator_publisher_ ;
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr target_pose_publisher_;
 
     rclcpp::TimerBase::SharedPtr timer_;
 };
