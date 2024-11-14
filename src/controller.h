@@ -23,7 +23,7 @@ public:
         pose_subscription_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
             "pose", 10, std::bind(&Controller::pose_callback, this, std::placeholders::_1));
         target_pose_subscription_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
-            "target_pose", 10, std::bind(&Controller::target_pose_callback, this, std::placeholders::_1));
+            "/target_pose", 10, std::bind(&Controller::target_pose_callback, this, std::placeholders::_1));
         cmd_vel_subscription_ = this->create_subscription<geometry_msgs::msg::Twist>(
             "cmd_vel", 10, std::bind(&Controller::cmd_vel_callback, this, std::placeholders::_1));
         rad_sensor_subscription_ = this->create_subscription<std_msgs::msg::Float64MultiArray>(
@@ -54,6 +54,9 @@ private:
     nav_msgs::msg::Path path_msg;
     nav_msgs::msg::Path path_predict;
     double multi_hop_internet;
+    bool isRabActuatorActive;
+    bool isPerceiveActive;
+    bool isEstimateActive;
 
     void pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
     {
@@ -88,7 +91,7 @@ private:
 
     void publish_rab_actuator();
 
-    void pid();
+    void velocityGenerator();
     //subscriper
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_subscription_;
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr target_pose_subscription_;
