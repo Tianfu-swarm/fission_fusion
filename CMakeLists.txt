@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(information_dissemination)
+project(fission_fusion)
 
 # Find required packages
 find_package(ament_cmake REQUIRED)

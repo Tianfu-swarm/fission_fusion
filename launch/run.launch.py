@@ -13,7 +13,7 @@ def generate_launch_description():
     for i in range(20): 
         nodes.append(
             Node(
-                package='information_dissemination',  
+                package='fission_fusion',  
                 executable='controller',  
                 name=f'controller',  
                 namespace=f'bot{i}',  
@@ -26,7 +26,7 @@ def generate_launch_description():
         executable='rviz2',  
         name='rviz',  
         output='screen',  
-        arguments=['-d', "/home/tianfu/information_dissemination_ws/src/information_dissemination/launch/rviz/defaul.rviz"],  
+        arguments=['-d', "/home/tianfu/fission_fusion_ws/src/fission_fusion/launch/rviz/defaul.rviz"],  
     )
     
 

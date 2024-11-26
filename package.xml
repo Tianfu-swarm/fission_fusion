@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <package format="3">
-  <name>information_dissemination</name>
+  <name>fission_fusion</name>
   <version>0.1.0</version>
-  <description>A ROS 2 package for information dissemination.</description>
+  <description>A ROS 2 package for fission_fusion.</description>
   <maintainer email="your_email@example.com">Your Name</maintainer>
   <license>Apache 2.0</license>
 
