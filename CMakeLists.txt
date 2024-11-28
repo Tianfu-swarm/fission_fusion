@@ -19,10 +19,10 @@ include_directories(
 )
 
 # Add the executable
-add_executable(controller src/controller.cpp)
+add_executable(fission_fusion src/P_controller.cpp src/visualization.cpp src/SDRM_controller.cpp src/main.cpp src/skybat_controller.cpp)
 
 # Link dependencies to the executable
-ament_target_dependencies(controller
+ament_target_dependencies(fission_fusion
   rclcpp
   std_msgs
   nav_msgs
@@ -40,7 +40,7 @@ install(DIRECTORY launch/
 
 # Install the target
 install(TARGETS
-  controller
+  fission_fusion
   DESTINATION lib/${PROJECT_NAME}
 )
 

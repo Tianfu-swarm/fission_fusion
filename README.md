@@ -1,22 +1,21 @@
-# Information_dissemination
-A demo to verify how information is disseminated in a swarm system. 
-The simulation environment used is ARGoS3, but the code development is primarily done with ROS. This is because we use a package similar to ros_bridge to connect ARGoS with ROS. 
-By purposefully triggering information to drive directed dissemination, this study analyzes how effective information spread influences a swarm’s transition from random movement to aggregation.
+# fission_fusion
+Fission–fusion societies, observed in various animal species, are characterized by dynamic changes in group size and composition as individuals merge (fusion) or split (fission) in response to environmental and social factors. This dynamic structuring provides a framework for exploring adaptive behaviors and collective decision-making. 
+
 
 # Start up
 
 ## Launch simulation environment
 
 ```bash
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/argos3:/YOUR_WORKSPACE/PATH/src/information_dissemination/lib
-export ARGOS_PLUGIN_PATH=/YOUR_WORKSPACE/PATH/src/information_dissemination/lib
-argos3 -c /experiments/information_dissemination.argos
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/argos3:/YOUR_WORKSPACE/PATH/src/fission_fusion/lib
+export ARGOS_PLUGIN_PATH=/YOUR_WORKSPACE/PATH/src/fission_fusion/lib
+argos3 -c /experiments/fission_fusion.argos
 ```
 
 ## Launch controller node
 ```bash
 source install/setup.bash
-ros2 launch information_dissemination run.launch.py
+ros2 launch fission_fusion run.launch.py
 ```
 
 ## Launch manual test robot
