@@ -19,6 +19,7 @@ void fissionFusion::SDRM_random_walk()
 
 void fissionFusion::SDRM_social_influence()
 {
+    
 }
 
 void fissionFusion::SDRM_publish_velocity()
@@ -37,38 +38,35 @@ void fissionFusion::SDRM_publish_velocity()
 
 double fissionFusion::generate_exponential(double lambda)
 {
+    std::random_device rd;
+    std::default_random_engine rng(rd());
     std::exponential_distribution<> dist(lambda);
-    return dist(rng_); // 返回一个符合指数分布的随机时间间隔
+    return dist(rng); 
 }
 
 void fissionFusion::SDRM_poisson_process()
 {
     rclcpp::Time now = this->get_clock()->now();
 
-    // 检查并触发 random_walk
     if (now >= next_trigger_time_random_)
     {
         current_decision_ = "random_walk";
         SDRM_random_walk();
 
-        // 设置下一次触发时间
         next_trigger_time_random_ = now + rclcpp::Duration::from_seconds(generate_exponential(lambda_random_));
-        RCLCPP_INFO(this->get_logger(), "[fission_fusion] random_walk triggered at %.3f, Random Walk Interval  Next Trigger: %.3f", now.seconds(), next_trigger_time_random_.seconds());
+
     }
 
-    // 检查并触发 social_influence
+
     if (now >= next_trigger_time_social_)
     {
         current_decision_ = "social_influence";
         SDRM_social_influence();
 
-        // 设置下一次触发时间
         next_trigger_time_social_ = now + rclcpp::Duration::from_seconds(generate_exponential(lambda_social_));
 
-        RCLCPP_INFO(this->get_logger(), "[fission_fusion] social_influence triggered at %.3f. Social Influence Interval Next Trigger: %.3f", now.seconds(), next_trigger_time_social_.seconds());
     }
 
-    // 如果没有触发新的事件，维持上次决策并继续执行相应的逻辑
     if (current_decision_ == "random_walk")
     {
         SDRM_random_walk();
@@ -81,6 +79,7 @@ void fissionFusion::SDRM_poisson_process()
 
 void fissionFusion::SDRM_controller_step()
 {
+
     fissionFusion::SDRM_poisson_process();
 
     fissionFusion::SDRM_publish_velocity();

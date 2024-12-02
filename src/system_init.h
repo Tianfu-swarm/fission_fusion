@@ -60,13 +60,17 @@ public:
             current_controller_ = std::bind(&fissionFusion::SDRM_controller_step, this);
         }
 
+        std::random_device rd;
+        std::default_random_engine rng(rd());
+
         timerA_ = this->create_wall_timer(
             std::chrono::milliseconds(100),
             std::bind(&fissionFusion::visualization, this));
 
         timerB_ = this->create_wall_timer(
             std::chrono::milliseconds(100),
-            current_controller_); 
+            current_controller_);
+
     }
 
 private:
@@ -130,8 +134,9 @@ private:
     
     rclcpp::Time next_trigger_time_random_ = this->get_clock()->now();
     rclcpp::Time next_trigger_time_social_ = this->get_clock()->now();
-    std::default_random_engine rng_;
     std::string current_decision_;
+
+
 
     void SDRM_controller_step();
     double generate_exponential(double lambda);
