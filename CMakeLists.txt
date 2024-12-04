@@ -10,6 +10,7 @@ find_package(nav_msgs REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
 
 # Include directories for generated message headers
@@ -30,6 +31,7 @@ ament_target_dependencies(fission_fusion
   visualization_msgs
   tf2_geometry_msgs
   angles
+  sensor_msgs
   
 )
 

@@ -10,7 +10,7 @@ def generate_launch_description():
 
     nodes = []
 
-    for i in range(1): 
+    for i in range(20): 
         nodes.append(
             Node(
                 package='fission_fusion',  
@@ -18,7 +18,7 @@ def generate_launch_description():
                 name=f'fission_fusion_controller',  
                 namespace=f'bot{i}',  
                 output='screen', 
-                 parameters=[
+                parameters=[
                 {"controller_type": "SDRM"}  #  "SDRM" / "skybat" / "P"
             ] 
             )

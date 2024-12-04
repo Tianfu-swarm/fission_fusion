@@ -8,6 +8,8 @@
 #include "std_msgs/msg/float64_multi_array.hpp"
 #include <angles/angles.h>
 #include "rclcpp/rclcpp.hpp"
+#include <sensor_msgs/msg/point_cloud2.hpp>
+#include <sensor_msgs/point_cloud2_iterator.hpp>
 #include "nav_msgs/msg/path.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "geometry_msgs/msg/twist.hpp"
@@ -29,6 +31,8 @@ public:
             "cmd_vel", 10, std::bind(&fissionFusion::cmd_vel_callback, this, std::placeholders::_1));
         rad_sensor_subscription_ = this->create_subscription<std_msgs::msg::Float64MultiArray>(
             "rab_sensor", 10, std::bind(&fissionFusion::rab_sensor_callback, this, std::placeholders::_1));
+        proximity_point_subscription_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
+            "proximity_point", 10, std::bind(&fissionFusion::proximity_point_callback, this, std::placeholders::_1));
 
         // publisher
         path_publisher_ = this->create_publisher<nav_msgs::msg::Path>("path_history", 10);
@@ -60,9 +64,6 @@ public:
             current_controller_ = std::bind(&fissionFusion::SDRM_controller_step, this);
         }
 
-        std::random_device rd;
-        std::default_random_engine rng(rd());
-
         timerA_ = this->create_wall_timer(
             std::chrono::milliseconds(100),
             std::bind(&fissionFusion::visualization, this));
@@ -71,6 +72,9 @@ public:
             std::chrono::milliseconds(100),
             current_controller_);
 
+        timerC_ = this->create_wall_timer(
+            std::chrono::milliseconds(100),
+            std::bind(&fissionFusion::update_subscriptions, this));
     }
 
 private:
@@ -81,6 +85,8 @@ private:
     std_msgs::msg::Float64MultiArray rab_data;
     nav_msgs::msg::Path path_msg;
     nav_msgs::msg::Path path_predict;
+    sensor_msgs::msg::PointCloud2 proximity_point;
+    std::map<std::string, geometry_msgs::msg::PoseStamped> poses_;
 
     void pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
     {
@@ -92,7 +98,6 @@ private:
         target_pose = *msg;
         target_pose.header.frame_id = "map";
     }
-
     void cmd_vel_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
     {
         current_vel = *msg;
@@ -101,6 +106,21 @@ private:
     {
         rab_data = *msg;
     }
+    void proximity_point_callback(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
+    {
+        proximity_point = *msg;
+    }
+    void all_pose_callback(const std::string &topic_name, const geometry_msgs::msg::PoseStamped::SharedPtr msg)
+    {
+        poses_[topic_name] = *msg;
+    }
+
+    /*************************************************************************
+     * Avoidance
+     **************************************************************************/
+    bool isAbstacle;
+    void avoidance();
+    void handleProximityAvoidance(const sensor_msgs::msg::PointCloud2 msg);
 
     /*************************************************************************
      * Visualization
@@ -131,13 +151,18 @@ private:
     double SDRM_angular_velocity;
     double lambda_random_ = 0.95;
     double lambda_social_ = 22;
-    
+    std::string selected_topic;
+    geometry_msgs::msg::PoseStamped SDRM_social_target;
+
     rclcpp::Time next_trigger_time_random_ = this->get_clock()->now();
     rclcpp::Time next_trigger_time_social_ = this->get_clock()->now();
     std::string current_decision_;
 
-
-
+    //sub all the robots' pose
+    void update_subscriptions();
+    //  
+    void SDRM_choose_indival_follow();
+    //control step
     void SDRM_controller_step();
     double generate_exponential(double lambda);
     void SDRM_random_walk();
@@ -152,9 +177,11 @@ private:
 
     // subscriper
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_subscription_;
+    std::map<std::string, rclcpp::SubscriptionBase::SharedPtr> subscriptions_;
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr target_pose_subscription_;
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_subscription_;
     rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr rad_sensor_subscription_;
+    rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr proximity_point_subscription_;
     // publisher
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_publisher_;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr predict_path_publisher_;
@@ -165,5 +192,7 @@ private:
 
     rclcpp::TimerBase::SharedPtr timerA_;
     rclcpp::TimerBase::SharedPtr timerB_;
+    rclcpp::TimerBase::SharedPtr timerC_;
+
     std::function<void()> current_controller_;
 };

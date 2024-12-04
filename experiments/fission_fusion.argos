@@ -22,7 +22,7 @@
         <leds implementation="default" medium="leds" />
       </actuators>
       <sensors>
-        <footbot_proximity implementation="default"/>
+        <footbot_proximity implementation="default" show_rays="true"/>
         <footbot_light implementation="rot_z_only" />
         <colored_blob_omnidirectional_camera implementation="rot_z_only" medium="leds" />
         <positioning implementation="default" />
@@ -32,7 +32,7 @@
         <wheel_turning hard_turning_angle_threshold="90"
                        soft_turn_angle_threshold="70"
                        no_turn_angle_threshold="10"
-                       max_speed="10" />
+                       max_speed="50" />
         <flocking target_distance="75"
                   gain="1000"
                   exponent="2" />
@@ -48,6 +48,20 @@
   <!-- * Arena configuration * -->
   <!-- *********************** -->
   <arena size="10,10,1" center="0,0,0.5">
+
+    <box id="wall_north" size="10,0.2,1" movable="false">
+      <body position="0,5,0" orientation="0,0,0" />
+    </box>
+    <box id="wall_south" size="10,0.2,1" movable="false">
+      <body position="0,-5,0" orientation="0,0,0" />
+    </box>
+    <box id="wall_east" size="0.2,10,1" movable="false">
+      <body position="-5,0,0" orientation="0,0,0" />
+    </box>
+    <box id="wall_west" size="0.2,10,1" movable="false">
+      <body position="5,0,0" orientation="0,0,0" />
+    </box>
+    
     <light id="light"
            position="0,0,0.5"
            orientation="0,0,0"
@@ -58,7 +72,7 @@
       <position method="uniform" min="-3,-3,0" max="3,3,0" />  
       <orientation method="gaussian" mean="0,0,0" std_dev="360,0,0" />
       <entity quantity="20" max_trials="100">
-        <foot-bot id="bot" rab_range="20" omnidirectional_camera_aperture="89.99" rab_data_size="120">
+        <foot-bot id="bot" rab_range="200" omnidirectional_camera_aperture="89.99" rab_data_size="120">
           <controller config="argos_ros_bot" />
         </foot-bot>
       </entity>
@@ -69,7 +83,7 @@
   <!-- * Physics engines * -->
   <!-- ******************* -->
   <physics_engines>
-    <dynamics2d id="dyn2d" />
+    <dynamics2d id="dyn2d" boundaries="true" />
   </physics_engines>
 
   <!-- ********* -->
@@ -77,7 +91,7 @@
   <!-- ********* -->
   <media>
     <led id="leds" />
-    <range_and_bearing id="rab" />  <!-- 确保定义了 rab -->
+    <range_and_bearing id="rab" />  
   </media>
 
   <!-- ****************** -->

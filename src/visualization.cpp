@@ -87,4 +87,6 @@ void fissionFusion::visualization()
     fissionFusion::publish_predict_path();
 
     fissionFusion::publish_odometry();
+
+    fissionFusion::avoidance();
 }
