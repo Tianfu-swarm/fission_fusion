@@ -10,7 +10,7 @@ def generate_launch_description():
 
     nodes = []
 
-    for i in range(20): 
+    for i in range(42): 
         nodes.append(
             Node(
                 package='fission_fusion',  

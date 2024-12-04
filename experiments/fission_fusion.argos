@@ -47,19 +47,19 @@
   <!-- *********************** -->
   <!-- * Arena configuration * -->
   <!-- *********************** -->
-  <arena size="10,10,1" center="0,0,0.5">
+  <arena size="40,40,1" center="0,0,0.5">
 
-    <box id="wall_north" size="10,0.2,1" movable="false">
-      <body position="0,5,0" orientation="0,0,0" />
+    <box id="wall_north" size="40,0.2,1" movable="false">
+      <body position="0,20,0" orientation="0,0,0" />
     </box>
-    <box id="wall_south" size="10,0.2,1" movable="false">
-      <body position="0,-5,0" orientation="0,0,0" />
+    <box id="wall_south" size="40,0.2,1" movable="false">
+      <body position="0,-20,0" orientation="0,0,0" />
     </box>
-    <box id="wall_east" size="0.2,10,1" movable="false">
-      <body position="-5,0,0" orientation="0,0,0" />
+    <box id="wall_east" size="0.2,40,1" movable="false">
+      <body position="-20,0,0" orientation="0,0,0" />
     </box>
-    <box id="wall_west" size="0.2,10,1" movable="false">
-      <body position="5,0,0" orientation="0,0,0" />
+    <box id="wall_west" size="0.2,40,1" movable="false">
+      <body position="20,0,0" orientation="0,0,0" />
     </box>
     
     <light id="light"
@@ -69,9 +69,9 @@
            intensity="3.0"
            medium="leds" />
     <distribute>
-      <position method="uniform" min="-3,-3,0" max="3,3,0" />  
+      <position method="uniform" min="-20,-20,0" max="20,20,0" />  
       <orientation method="gaussian" mean="0,0,0" std_dev="360,0,0" />
-      <entity quantity="20" max_trials="100">
+      <entity quantity="42" max_trials="100">
         <foot-bot id="bot" rab_range="200" omnidirectional_camera_aperture="89.99" rab_data_size="120">
           <controller config="argos_ros_bot" />
         </foot-bot>
@@ -101,7 +101,7 @@
     <qt-opengl>
       <camera>
         <placements>
-          <placement index="0" position="0,0,25" look_at="0,0,0" up="1,0,0" lens_focal_length="65" />
+          <placement index="0" position="0,0,100" look_at="0,0,0" up="1,0,0" lens_focal_length="65" />
         </placements>
       </camera>
     </qt-opengl>

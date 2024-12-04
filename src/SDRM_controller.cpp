@@ -32,11 +32,13 @@ void fissionFusion::update_subscriptions()
 
 void fissionFusion::SDRM_random_walk()
 {
+    selected_topic.clear();
+
     double mean_linear_velocity = 0.05;
     double stddev_linear_velocity = 0.01;
 
     double mean_angular_velocity = 0.0;
-    double stddev_angular_velocity = 0.1;
+    double stddev_angular_velocity = 1;
 
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -69,7 +71,7 @@ void fissionFusion::SDRM_choose_indival_follow()
 
     // 随机选择一个话题
     bool selected = false;
-    
+
     int attempt_limit = 10; // 最多尝试次数
 
     while (!selected && attempt_limit > 0)
@@ -104,8 +106,73 @@ void fissionFusion::SDRM_choose_indival_follow()
 
 void fissionFusion::SDRM_social_influence()
 {
-    fissionFusion::SDRM_choose_indival_follow();
+    if (selected_topic.empty())
+    {
+        fissionFusion::SDRM_choose_indival_follow();
+    }
+
     SDRM_social_target = poses_[selected_topic];
+
+    double dx = SDRM_social_target.pose.position.x - current_pose.pose.position.x;
+    double dy = SDRM_social_target.pose.position.y - current_pose.pose.position.y;
+    double distance = sqrt(dx * dx + dy * dy);
+    double angle_to_target = atan2(dy, dx);
+
+    double w = current_pose.pose.orientation.w;
+    double x = current_pose.pose.orientation.x;
+    double y = current_pose.pose.orientation.y;
+    double z = current_pose.pose.orientation.z;
+    double siny_cosp = 2.0 * (w * z + x * y);
+    double cosy_cosp = 1.0 - 2.0 * (y * y + z * z);
+    double current_angle = atan2(siny_cosp, cosy_cosp);
+
+    double angle_error = angle_to_target - current_angle;
+
+    // 控制器运行周期
+    double dt = control_loop_duration; // 例如 0.01 秒
+
+    // 误差变化率（微分项）
+    double distance_error_rate = (distance - prev_distance_error) / dt;
+    double angle_error_rate = (angle_error - prev_angle_error) / dt;
+
+    // 计算 PD 控制输出
+    double v = Kp_distance * distance + Kd_distance * distance_error_rate;
+    double omega = Kp_angle * angle_error + Kd_angle * angle_error_rate;
+
+    if (fabs(angle_error) > M_PI / 4)
+    {            // 如果角度误差大于 45 度
+        v = 0.0; // 先转向
+    }
+    // 停止条件
+    if (distance < 0.5)
+    {
+        v = 0.0;
+        omega = 0.0;
+    }
+
+   
+    if (v > max_velocity)
+    {
+        v = max_velocity;
+    }
+    else if (v < -max_velocity)
+    {
+        v = -max_velocity;
+    }
+
+ 
+    if (omega > max_omega)
+    {
+        omega = max_omega;
+    }
+    else if (omega < -max_omega)
+    {
+        omega = -max_omega;
+    }
+
+    // 更新速度命令
+    SDRM_linear_velocity = v;
+    SDRM_angular_velocity = omega;
 }
 
 void fissionFusion::SDRM_publish_velocity()
@@ -137,7 +204,7 @@ void fissionFusion::SDRM_poisson_process()
     if (now >= next_trigger_time_random_)
     {
         current_decision_ = "random_walk";
-     
+        selected_topic.clear();
         next_trigger_time_random_ = now + rclcpp::Duration::from_seconds(generate_exponential(lambda_random_));
     }
 
@@ -147,23 +214,38 @@ void fissionFusion::SDRM_poisson_process()
 
         next_trigger_time_social_ = now + rclcpp::Duration::from_seconds(generate_exponential(lambda_social_));
     }
-
-    if (current_decision_ == "random_walk")
-    {
-        selected_topic.clear();
-        SDRM_random_walk();
-        RCLCPP_INFO(this->get_logger(), "random walk");
-    }
-    else if (current_decision_ == "social_influence")
-    {
-        SDRM_social_influence();
-    }
 }
 
 void fissionFusion::SDRM_controller_step()
 {
-
-    fissionFusion::SDRM_poisson_process();
+    rclcpp::Time bats_now = this->get_clock()->now();
+    if (bats_now < roosting_time)
+    {
+        // Dawn time
+        fissionFusion::SDRM_poisson_process();
+        SDRM_random_walk();
+        RCLCPP_INFO(this->get_logger(), "poisson_process,decision-making time");
+    }
+    else if (bats_now >= roosting_time && bats_now < foraging_time)
+    {
+        // Roosting time
+        if (current_decision_ == "random_walk")
+        {
+            SDRM_random_walk();
+            RCLCPP_INFO(this->get_logger(), "roosting-random walk");
+        }
+        else if (current_decision_ == "social_influence")
+        {
+            SDRM_social_influence();
+            //RCLCPP_INFO(this->get_logger(), "roosting-social_influence");
+        }
+    }
+    else if (bats_now >= foraging_time)
+    {
+        // Foraging time
+        SDRM_random_walk();
+        RCLCPP_INFO(this->get_logger(), "foraging...");
+    }
 
     if (isAbstacle == false)
     {

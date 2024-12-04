@@ -4,7 +4,7 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /bot01
+        - /Grid1
         - /bot01/Pose1
         - /bot01/Path1
         - /bot01/Path2
@@ -82,7 +82,7 @@ Visualization Manager:
         Y: 0
         Z: 0
       Plane: XY
-      Plane Cell Count: 10
+      Plane Cell Count: 41
       Reference Frame: <Fixed Frame>
       Value: true
     - Class: rviz_common/Group
@@ -1731,25 +1731,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 17.623416900634766
+      Distance: 52.40496826171875
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0
-        Y: 0
-        Z: 0
+        X: 0.6303386688232422
+        Y: -0.8645808100700378
+        Z: 0.0037883042823523283
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5697963237762451
+      Pitch: 1.5647963285446167
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.1353979110717773
+      Yaw: 3.1403980255126953
     Saved: ~
 Window Geometry:
   Displays:
