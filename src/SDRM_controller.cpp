@@ -34,7 +34,7 @@ void fissionFusion::SDRM_random_walk()
 {
     selected_topic.clear();
 
-    double mean_linear_velocity = 0.05;
+    double mean_linear_velocity = 1;
     double stddev_linear_velocity = 0.01;
 
     double mean_angular_velocity = 0.0;
@@ -102,6 +102,10 @@ void fissionFusion::SDRM_choose_indival_follow()
         // 输出选中的话题
         RCLCPP_INFO(this->get_logger(), "Selected topic: %s", selected_topic.c_str());
     }
+    else
+    {
+        RCLCPP_INFO(this->get_logger(), "no options");
+    }
 }
 
 void fissionFusion::SDRM_social_influence()
@@ -143,6 +147,7 @@ void fissionFusion::SDRM_social_influence()
     {            // 如果角度误差大于 45 度
         v = 0.0; // 先转向
     }
+    
     // 停止条件
     if (distance < 0.5)
     {
@@ -177,6 +182,8 @@ void fissionFusion::SDRM_social_influence()
 
 void fissionFusion::SDRM_publish_velocity()
 {
+   
+
     geometry_msgs::msg::Twist twist_msg;
     twist_msg.linear.x = SDRM_linear_velocity;
     twist_msg.linear.y = 0.0;

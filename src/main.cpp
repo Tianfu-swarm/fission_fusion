@@ -48,13 +48,18 @@ void fissionFusion::handleProximityAvoidance(const sensor_msgs::msg::PointCloud2
             if (angle > 0.0)
             {
                 cmd_vel.linear.x = 0.0;
-                cmd_vel.angular.z = -1.0; // 左转
+                cmd_vel.angular.z = -1.5; // 左转
             }
             else
             {
                 cmd_vel.linear.x = 0.0;
-                cmd_vel.angular.z = 1.0; // 右转
+                cmd_vel.angular.z = 1.5; // 右转
             }
+        }
+        if (distance < 2) // 如果障碍物非常近
+        {
+            cmd_vel.linear.x = -1;                   // 后退
+            cmd_vel.angular.z = angle > 0 ? -5 : 5; // 根据角度调整后退方向
         }
     }
     else

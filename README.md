@@ -22,3 +22,8 @@ ros2 launch fission_fusion run.launch.py
 ```bash
 ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -r cmd_vel:=bot0/cmd_vel
 ```
+
+
+## Demo of baseline
+
+![Demo GIF](picture/7.gif)

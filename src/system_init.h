@@ -158,11 +158,11 @@ private:
     double prev_distance_error = 0;
     double prev_angle_error = 0;
     double control_loop_duration = 0.01;
-    double Kp_distance = 0.2;
+    double Kp_distance = 0.1;
     double Kd_distance = 0.2;
-    double Kp_angle = 0.02;
+    double Kp_angle = 0.05;
     double Kd_angle = 0.1;
-    double max_velocity = 1;
+    double max_velocity = 5;
     double max_omega = 1;
 
     rclcpp::Time now_ = this->get_clock()->now();
