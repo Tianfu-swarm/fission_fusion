@@ -169,14 +169,16 @@ private:
     double max_omega = 5;
 
     //follow neighbour
-    double neighbour_range_size = 40;
+    double neighbour_range_size = 10;
 
     //simulation time
-    double roosting_duration_time = 15;
-    double foraging_duration_time = 600;
+    double poisson_process_duration_time = 15;
+    double roosting_duration_time = 65;
+    double foraging_duration_time = 100;
     rclcpp::Time now_ = this->get_clock()->now();
     rclcpp::Time next_trigger_time_random_ = now_;
     rclcpp::Time next_trigger_time_social_ = now_;
+    rclcpp::Time poisson_process_time = now_ + rclcpp::Duration(poisson_process_duration_time, 0);
     rclcpp::Time roosting_time = now_ + rclcpp::Duration(roosting_duration_time, 0);
     rclcpp::Time foraging_time = now_ + rclcpp::Duration(foraging_duration_time, 0);
     std::string current_decision_;

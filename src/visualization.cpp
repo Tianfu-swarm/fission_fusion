@@ -82,10 +82,14 @@ void fissionFusion::publish_odometry()
 
 void fissionFusion::publish_follow_relation()
 {
-   if(SDRM_social_target.header.frame_id.empty())
-   {
-    return;
-   }
+    if (SDRM_social_target.header.frame_id.empty())
+    {
+        auto marker = visualization_msgs::msg::Marker();
+        marker.header.frame_id = "map";
+        marker.action = visualization_msgs::msg::Marker::DELETEALL;
+        follow_relation_pub_->publish(marker);
+        return;
+    }
 
     auto marker = visualization_msgs::msg::Marker();
 

@@ -34,11 +34,11 @@ void fissionFusion::SDRM_random_walk()
 {
     // selected_topic.clear();
 
-    double mean_linear_velocity = 3;
-    double stddev_linear_velocity = 0.01;
+    double mean_linear_velocity = 4;
+    double stddev_linear_velocity = 4;
 
     double mean_angular_velocity = 0.0;
-    double stddev_angular_velocity = 0.5;
+    double stddev_angular_velocity = 1;
 
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -312,14 +312,14 @@ void fissionFusion::SDRM_poisson_process()
 void fissionFusion::SDRM_controller_step()
 {
     rclcpp::Time bats_now = this->get_clock()->now();
-    if (bats_now < roosting_time)
+    if (bats_now < poisson_process_time)
     {
-        // Dawn time
+        // poisson_process time
         fissionFusion::SDRM_poisson_process();
         SDRM_random_walk();
-        // RCLCPP_INFO(this->get_logger(), "poisson_process,decision-making time");
+        RCLCPP_INFO(this->get_logger(), "poisson_process ing...");
     }
-    else if (bats_now >= roosting_time && bats_now < foraging_time)
+    else if (bats_now >= poisson_process_time && bats_now < roosting_time)
     {
         // Roosting time
         if (current_decision_ == "random_walk")
@@ -330,14 +330,23 @@ void fissionFusion::SDRM_controller_step()
         else if (current_decision_ == "social_influence")
         {
             SDRM_social_influence();
-            // RCLCPP_INFO(this->get_logger(), "roosting-social_influence");
         }
+    }
+    else if (bats_now >= roosting_time&&bats_now < foraging_time)
+    {
+        // foraging time
+        SDRM_social_target.header.frame_id.clear();
+        SDRM_random_walk();
+        RCLCPP_INFO(this->get_logger(), "foraging...");
+
     }
     else if (bats_now >= foraging_time)
     {
-        // Foraging time
-        SDRM_random_walk();
-        RCLCPP_INFO(this->get_logger(), "foraging...");
+        SDRM_social_target.header.frame_id.clear();
+        now_ = this->get_clock()->now();
+        poisson_process_time = now_ + rclcpp::Duration(poisson_process_duration_time, 0);
+        roosting_time = now_ + rclcpp::Duration(roosting_duration_time, 0);
+        foraging_time = now_ + rclcpp::Duration(foraging_duration_time, 0);
     }
 
     if (isAbstacle == false)
