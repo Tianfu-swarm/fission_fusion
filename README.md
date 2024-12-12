@@ -24,6 +24,6 @@ ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -r cmd_vel:=bot0
 ```
 
 
-## Demo of baseline
+## Demo of SDRM
 
-![Demo GIF](picture/7.gif)
+![Demo GIF](picture/demo_SDRM.gif)
