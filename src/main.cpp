@@ -32,34 +32,39 @@ void fissionFusion::handleProximityAvoidance(const sensor_msgs::msg::PointCloud2
     float angle = std::atan2(accum_y, accum_x);                        // 累积矢量方向
     float distance = std::sqrt(accum_x * accum_x + accum_y * accum_y); // 累积矢量的长度
 
+    // RCLCPP_INFO(this->get_logger(), "distance is :,%f", distance);
     // 控制逻辑
     if (distance > 0.0) // 如果累积矢量表示有障碍物
-    {
+    {                   // RCLCPP_INFO(this->get_logger(), "angle is :,%f", angle);
         isAbstacle = true;
         // 如果角度在允许范围内，直行
-        if (std::abs(angle) < 0.05) // 假设小于 0.2 弧度的角度为直行范围
+        if (std::abs(angle) > 1) // 假设大于 0.05 弧度的角度为直行范围
         {
-            cmd_vel.linear.x = 0.05;
+            cmd_vel.linear.x = 10;
             cmd_vel.angular.z = 0.0;
+            // RCLCPP_INFO(this->get_logger(), "go straight...");
         }
         else
         {
             // 如果角度不在直行范围内，根据角度转向
-            if (angle > 0.0)
+            if (angle < 0.0)
             {
                 cmd_vel.linear.x = 0.0;
                 cmd_vel.angular.z = -1.5; // 左转
+                // RCLCPP_INFO(this->get_logger(), "turn left...");
             }
             else
             {
                 cmd_vel.linear.x = 0.0;
                 cmd_vel.angular.z = 1.5; // 右转
+                // RCLCPP_INFO(this->get_logger(), "turn right...");
             }
         }
-        if (distance < 2) // 如果障碍物非常近
+        if (distance < 10) // 如果障碍物非常近
         {
-            cmd_vel.linear.x = -1;                   // 后退
-            cmd_vel.angular.z = angle > 0 ? -5 : 5; // 根据角度调整后退方向
+            cmd_vel.linear.x = abs(angle) < 1 ? -1 : 1; // 后退
+            cmd_vel.angular.z = angle > 0 ? -5 : 5;     // 根据角度调整后退方向
+            // RCLCPP_INFO(this->get_logger(), "go back...");
         }
     }
     else
@@ -82,6 +87,6 @@ int main(int argc, char *argv[])
 {
     rclcpp::init(argc, argv); // Initialize the ROS 2 system
     rclcpp::spin(std::make_shared<fissionFusion>());
-    rclcpp::shutdown(); // Properly shut down ROS 2 system
+    rclcpp::shutdown(); 
     return 0;
 }

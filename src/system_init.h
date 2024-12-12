@@ -16,6 +16,7 @@
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include <tf2/utils.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <visualization_msgs/msg/marker.hpp>
 
 class fissionFusion : public rclcpp::Node
 {
@@ -41,6 +42,7 @@ public:
         odom_publisher_ = this->create_publisher<nav_msgs::msg::Odometry>("odom", 10);
         rab_actuator_publisher_ = this->create_publisher<std_msgs::msg::Float64MultiArray>("rab_actuator", 10);
         target_pose_publisher_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("target_pose", 10);
+        follow_relation_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("follow_relation", 10);
 
         this->declare_parameter<std::string>("controller_type", "SDRM");
 
@@ -129,6 +131,7 @@ private:
     void publish_path();
     void publish_predict_path();
     void publish_odometry();
+    void publish_follow_relation();
 
     /*************************************************************************
      * P controller
@@ -149,27 +152,33 @@ private:
      **************************************************************************/
     double SDRM_linear_velocity;
     double SDRM_angular_velocity;
-    double lambda_random_ = 0.95;
+    double lambda_random_ = 0.95; //0.95
     double lambda_social_ = 22;
     std::string selected_topic;
     geometry_msgs::msg::PoseStamped SDRM_social_target;
 
-    //PD
+    //PD parameters
     double prev_distance_error = 0;
     double prev_angle_error = 0;
     double control_loop_duration = 0.01;
-    double Kp_distance = 0.1;
-    double Kd_distance = 0.2;
+    double Kp_distance = 0.005;
+    double Kd_distance = 0.02;
     double Kp_angle = 0.05;
-    double Kd_angle = 0.1;
-    double max_velocity = 5;
-    double max_omega = 1;
+    double Kd_angle = 0.05;
+    double max_velocity = 8;
+    double max_omega = 5;
 
+    //follow neighbour
+    double neighbour_range_size = 40;
+
+    //simulation time
+    double roosting_duration_time = 15;
+    double foraging_duration_time = 600;
     rclcpp::Time now_ = this->get_clock()->now();
     rclcpp::Time next_trigger_time_random_ = now_;
     rclcpp::Time next_trigger_time_social_ = now_;
-    rclcpp::Time roosting_time = now_ + rclcpp::Duration(30, 0);
-    rclcpp::Time foraging_time = now_ + rclcpp::Duration(600, 0);
+    rclcpp::Time roosting_time = now_ + rclcpp::Duration(roosting_duration_time, 0);
+    rclcpp::Time foraging_time = now_ + rclcpp::Duration(foraging_duration_time, 0);
     std::string current_decision_;
 
     //sub all the robots' pose
@@ -178,6 +187,7 @@ private:
     void SDRM_choose_indival_follow();
     //control step
     void SDRM_controller_step();
+    void SDRM_choose_indival_from_neighbour(double neighbour_distance_threshold);
     double generate_exponential(double lambda);
     void SDRM_random_walk();
     void SDRM_social_influence();
@@ -203,6 +213,7 @@ private:
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_publisher_;
     rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr rab_actuator_publisher_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr target_pose_publisher_;
+    rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr follow_relation_pub_;
 
     rclcpp::TimerBase::SharedPtr timerA_;
     rclcpp::TimerBase::SharedPtr timerB_;

@@ -32,13 +32,13 @@ void fissionFusion::update_subscriptions()
 
 void fissionFusion::SDRM_random_walk()
 {
-    selected_topic.clear();
+    // selected_topic.clear();
 
-    double mean_linear_velocity = 1;
+    double mean_linear_velocity = 3;
     double stddev_linear_velocity = 0.01;
 
     double mean_angular_velocity = 0.0;
-    double stddev_angular_velocity = 1;
+    double stddev_angular_velocity = 0.5;
 
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -48,6 +48,7 @@ void fissionFusion::SDRM_random_walk()
     SDRM_linear_velocity = std::max(0.0, linear_dist(gen));
     SDRM_angular_velocity = angular_dist(gen);
 }
+
 void fissionFusion::SDRM_choose_indival_follow()
 {
     if (!selected_topic.empty())
@@ -84,8 +85,13 @@ void fissionFusion::SDRM_choose_indival_follow()
         const std::string &topic_name = it->first;
 
         // 提取话题的命名空间部分
-        size_t pos = topic_name.find('/');
-        std::string topic_namespace = (pos != std::string::npos) ? topic_name.substr(0, pos) : "";
+        size_t first_slash = topic_name.find('/');
+        size_t second_slash = topic_name.find('/', first_slash + 1);
+
+        // 确保找到第二个斜杠，提取命名空间
+        std::string topic_namespace = (second_slash != std::string::npos)
+                                          ? topic_name.substr(0, second_slash)
+                                          : topic_name;
 
         // 如果该话题的命名空间与当前节点的命名空间不同，选择该话题
         if (topic_namespace != current_namespace)
@@ -108,13 +114,87 @@ void fissionFusion::SDRM_choose_indival_follow()
     }
 }
 
+void fissionFusion::SDRM_choose_indival_from_neighbour(double neighbour_distance_threshold)
+{
+    if (!selected_topic.empty())
+    {
+        return;
+    }
+
+    // 获取当前节点的命名空间
+    std::string current_namespace = this->get_namespace();
+
+    // 检查 poses_ 是否为空
+    if (poses_.empty())
+    {
+        RCLCPP_WARN(this->get_logger(), "Pose map is empty. Cannot select a topic.");
+        return;
+    }
+
+    // 定义距离阈值
+    const double distance_threshold = neighbour_distance_threshold;
+    std::vector<std::string> eligible_topics;
+    for (const auto &pair : poses_)
+    {
+        const std::string &topic_name = pair.first;
+        const geometry_msgs::msg::PoseStamped &pose = pair.second;
+
+        // 计算欧几里得距离
+        double distance = std::sqrt(std::pow(pose.pose.position.x - current_pose.pose.position.x, 2) +
+                                    std::pow(pose.pose.position.y - current_pose.pose.position.y, 2) +
+                                    std::pow(pose.pose.position.z - current_pose.pose.position.z, 2));
+
+        // 提取话题的命名空间
+        size_t first_slash = topic_name.find('/');
+        size_t second_slash = topic_name.find('/', first_slash + 1);
+
+        // 确保找到第二个斜杠，提取命名空间
+        std::string topic_namespace = (second_slash != std::string::npos)
+                                          ? topic_name.substr(0, second_slash)
+                                          : topic_name;
+
+        // 跳过自身的命名空间
+        if (topic_namespace == current_namespace)
+        {
+            continue; // 忽略自己
+        }
+
+        // 如果距离小于阈值，则添加到候选列表
+        if (distance < distance_threshold)
+        {
+            eligible_topics.push_back(topic_name);
+        }
+    }
+
+    if (eligible_topics.empty())
+    {
+        RCLCPP_INFO(this->get_logger(), "No neighbour to follow, random walk to look for");
+        fissionFusion::SDRM_random_walk();
+        return;
+    }
+
+    // 创建随机数生成器
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, eligible_topics.size() - 1);
+
+    // 随机选择一个话题
+    selected_topic = eligible_topics[dis(gen)];
+
+    // 输出选中的话题
+    RCLCPP_INFO(this->get_logger(), "Selected neighbour topic: %s", selected_topic.c_str());
+}
+
 void fissionFusion::SDRM_social_influence()
 {
     if (selected_topic.empty())
     {
-        fissionFusion::SDRM_choose_indival_follow();
+        // fissionFusion::SDRM_choose_indival_follow();
+        fissionFusion::SDRM_choose_indival_from_neighbour(neighbour_range_size);
+        return;
     }
 
+    SDRM_social_target.header.frame_id = "map";
     SDRM_social_target = poses_[selected_topic];
 
     double dx = SDRM_social_target.pose.position.x - current_pose.pose.position.x;
@@ -132,6 +212,15 @@ void fissionFusion::SDRM_social_influence()
 
     double angle_error = angle_to_target - current_angle;
 
+    if (angle_error > M_PI)
+    {
+        angle_error -= 2 * M_PI;
+    }
+    else if (angle_error < -M_PI)
+    {
+        angle_error += 2 * M_PI;
+    }
+
     // 控制器运行周期
     double dt = control_loop_duration; // 例如 0.01 秒
 
@@ -147,7 +236,7 @@ void fissionFusion::SDRM_social_influence()
     {            // 如果角度误差大于 45 度
         v = 0.0; // 先转向
     }
-    
+
     // 停止条件
     if (distance < 0.5)
     {
@@ -155,7 +244,6 @@ void fissionFusion::SDRM_social_influence()
         omega = 0.0;
     }
 
-   
     if (v > max_velocity)
     {
         v = max_velocity;
@@ -165,7 +253,6 @@ void fissionFusion::SDRM_social_influence()
         v = -max_velocity;
     }
 
- 
     if (omega > max_omega)
     {
         omega = max_omega;
@@ -182,7 +269,6 @@ void fissionFusion::SDRM_social_influence()
 
 void fissionFusion::SDRM_publish_velocity()
 {
-   
 
     geometry_msgs::msg::Twist twist_msg;
     twist_msg.linear.x = SDRM_linear_velocity;
@@ -231,7 +317,7 @@ void fissionFusion::SDRM_controller_step()
         // Dawn time
         fissionFusion::SDRM_poisson_process();
         SDRM_random_walk();
-        RCLCPP_INFO(this->get_logger(), "poisson_process,decision-making time");
+        // RCLCPP_INFO(this->get_logger(), "poisson_process,decision-making time");
     }
     else if (bats_now >= roosting_time && bats_now < foraging_time)
     {
@@ -244,7 +330,7 @@ void fissionFusion::SDRM_controller_step()
         else if (current_decision_ == "social_influence")
         {
             SDRM_social_influence();
-            //RCLCPP_INFO(this->get_logger(), "roosting-social_influence");
+            // RCLCPP_INFO(this->get_logger(), "roosting-social_influence");
         }
     }
     else if (bats_now >= foraging_time)

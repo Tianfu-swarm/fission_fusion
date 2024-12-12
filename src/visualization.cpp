@@ -80,6 +80,49 @@ void fissionFusion::publish_odometry()
     odom_publisher_->publish(odom);
 }
 
+void fissionFusion::publish_follow_relation()
+{
+   if(SDRM_social_target.header.frame_id.empty())
+   {
+    return;
+   }
+
+    auto marker = visualization_msgs::msg::Marker();
+
+    // 设置 Marker 基本信息
+    marker.header.frame_id = "map"; 
+    marker.header.stamp = this->get_clock()->now();
+    marker.ns = "arrows";
+    marker.id = 0;
+    marker.type = visualization_msgs::msg::Marker::ARROW; 
+    marker.action = visualization_msgs::msg::Marker::ADD;
+
+    // 设置箭头的起点和终点
+    geometry_msgs::msg::Point start, end;
+    start.x = current_pose.pose.position.x;
+    start.y = current_pose.pose.position.y;
+    start.z = current_pose.pose.position.z;
+    end.x = SDRM_social_target.pose.position.x;
+    end.y = SDRM_social_target.pose.position.y;
+    end.z = SDRM_social_target.pose.position.z;
+
+    marker.points.push_back(start);
+    marker.points.push_back(end);
+
+    marker.scale.x = 0.08; // 箭头的杆宽
+    marker.scale.y = 0.3; // 箭头的头宽
+    marker.scale.z = 0.0; // 忽略
+
+    // 设置箭头的颜色
+    marker.color.r = 0.0f; // 红色最大值
+    marker.color.g = 1.0f; // 绿色最大值
+    marker.color.b = 1.0f; // 蓝色为 0
+    marker.color.a = 1.0f; // 不透明
+
+    // 发布 Marker
+    follow_relation_pub_->publish(marker);
+}
+
 void fissionFusion::visualization()
 {
     fissionFusion::publish_path();
@@ -87,6 +130,8 @@ void fissionFusion::visualization()
     fissionFusion::publish_predict_path();
 
     fissionFusion::publish_odometry();
+
+    fissionFusion::publish_follow_relation();
 
     fissionFusion::avoidance();
 }
