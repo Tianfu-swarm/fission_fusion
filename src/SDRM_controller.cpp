@@ -1,5 +1,59 @@
 #include "system_init.h"
 
+void fissionFusion::SDRM_update_Social_Status()
+{
+    for (const auto &pose : poses_)
+    {
+        double dx = pose.second.pose.position.x - current_pose.pose.position.x;
+        double dy = pose.second.pose.position.y - current_pose.pose.position.y;
+        double dz = pose.second.pose.position.z - current_pose.pose.position.z;
+        double distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+
+        if (distance < social_distance)
+        {
+            bool found = false;
+
+            for (auto &influence : value_social_influence)
+            {
+                // 如果找到对应的名字，更新值
+                if (influence.first == pose.first)
+                {
+                    influence.second *= social_lambda_increase; // 增强社交影响力
+                    found = true;
+                    break;
+                }
+            }
+
+            // 如果未找到，添加新的社交对象
+            if (!found)
+            {
+                value_social_influence[pose.first] = 1.0;
+            }
+        }
+        else
+        {
+            bool found = false;
+
+            for (auto &influence : value_social_influence)
+            {
+                // 如果找到对应的名字，更新值
+                if (influence.first == pose.first)
+                {
+                    influence.second *= social_lambda_decrease; // 降低社交影响力
+                    found = true;
+                    break;
+                }
+            }
+
+            // 如果未找到，添加新的社交对象
+            if (!found)
+            {
+                value_social_influence[pose.first] = 1.0;
+            }
+        }
+    }
+}
+
 void fissionFusion::update_subscriptions()
 {
     // 获取当前系统中的所有话题
@@ -173,16 +227,38 @@ void fissionFusion::SDRM_choose_indival_from_neighbour(double neighbour_distance
         return;
     }
 
-    // 创建随机数生成器
+    std::vector<std::pair<std::string, double>> eligible_topics_social_;
+
+    for (const auto &eligible_topic : eligible_topics)
+    {
+        // 如果 value_social_influence 中没有这个话题，使用默认值 1
+        double social_influence = 1.0;
+        auto it = value_social_influence.find(eligible_topic);
+        if (it != value_social_influence.end())
+        {
+            social_influence = it->second; // 找到的话题则使用对应的值
+        }
+
+        // 将话题和权重添加到 eligible_topics_social_ 中
+        eligible_topics_social_.push_back({eligible_topic, social_influence});
+    }
+
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(0, eligible_topics.size() - 1);
 
-    // 随机选择一个话题
-    selected_topic = eligible_topics[dis(gen)];
+    std::vector<double> weights;
+    for (const auto &topic : eligible_topics_social_)
+    {
+        weights.push_back(topic.second);
+    }
+
+    std::discrete_distribution<> dis(weights.begin(), weights.end());
+
+    int selected_index = dis(gen);
+    selected_topic = eligible_topics_social_[selected_index].first;
 
     // 输出选中的话题
-    RCLCPP_INFO(this->get_logger(), "Selected neighbour topic: %s", selected_topic.c_str());
+    //RCLCPP_INFO(this->get_logger(), "Selected neighbour topic: %s", selected_topic.c_str());
 }
 
 void fissionFusion::SDRM_social_influence()
@@ -315,9 +391,9 @@ void fissionFusion::SDRM_controller_step()
     if (bats_now < poisson_process_time)
     {
         // poisson_process time
-        fissionFusion::SDRM_poisson_process();
+        SDRM_poisson_process();
         SDRM_random_walk();
-        RCLCPP_INFO(this->get_logger(), "poisson_process ing...");
+        // RCLCPP_INFO(this->get_logger(), "poisson_process ing...");
     }
     else if (bats_now >= poisson_process_time && bats_now < roosting_time)
     {
@@ -325,33 +401,38 @@ void fissionFusion::SDRM_controller_step()
         if (current_decision_ == "random_walk")
         {
             SDRM_random_walk();
-            RCLCPP_INFO(this->get_logger(), "roosting-random walk");
+            // RCLCPP_INFO(this->get_logger(), "roosting-random walk");
         }
         else if (current_decision_ == "social_influence")
         {
+            SDRM_update_Social_Status();
+
             SDRM_social_influence();
         }
     }
-    else if (bats_now >= roosting_time&&bats_now < foraging_time)
+    else if (bats_now >= roosting_time && bats_now < foraging_time)
     {
         // foraging time
         SDRM_social_target.header.frame_id.clear();
         SDRM_random_walk();
-        RCLCPP_INFO(this->get_logger(), "foraging...");
-
+        // RCLCPP_INFO(this->get_logger(), "foraging...");
     }
     else if (bats_now >= foraging_time)
     {
         SDRM_social_target.header.frame_id.clear();
         now_ = this->get_clock()->now();
         poisson_process_time = now_ + rclcpp::Duration(poisson_process_duration_time, 0);
-        roosting_time = now_ + rclcpp::Duration(roosting_duration_time, 0);
-        foraging_time = now_ + rclcpp::Duration(foraging_duration_time, 0);
+        roosting_time = poisson_process_time + rclcpp::Duration(roosting_duration_time, 0);
+        foraging_time = roosting_time + rclcpp::Duration(foraging_duration_time, 0);
+
+        // note the day
+        num_of_day = num_of_day + 1;
+        RCLCPP_INFO(this->get_logger(), "num_of_day:%d", num_of_day);
     }
 
     if (isAbstacle == false)
     {
-        fissionFusion::SDRM_publish_velocity();
+        SDRM_publish_velocity();
     }
     else
     {

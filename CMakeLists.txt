@@ -5,6 +5,7 @@ project(fission_fusion)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(yaml-cpp REQUIRED)
 find_package(angles REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
@@ -26,19 +27,23 @@ add_executable(fission_fusion src/P_controller.cpp src/visualization.cpp src/SDR
 ament_target_dependencies(fission_fusion
   rclcpp
   std_msgs
+  yaml-cpp
   nav_msgs
   geometry_msgs
   visualization_msgs
   tf2_geometry_msgs
   angles
   sensor_msgs
-  
 )
+
+target_link_libraries(fission_fusion yaml-cpp)
 
 # Install launch files
 install(DIRECTORY launch/
   DESTINATION share/${PROJECT_NAME}/launch
 )
+
+configure_file(${CMAKE_SOURCE_DIR}/config/config.yaml ${CMAKE_BINARY_DIR}/config/config.yaml COPYONLY)
 
 # Install the target
 install(TARGETS

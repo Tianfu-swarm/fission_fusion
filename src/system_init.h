@@ -4,6 +4,7 @@
 #include <thread>
 #include <random>
 #include <iostream>
+#include <yaml-cpp/yaml.h>
 #include "std_msgs/msg/string.hpp"
 #include "std_msgs/msg/float64_multi_array.hpp"
 #include <angles/angles.h>
@@ -23,6 +24,9 @@ class fissionFusion : public rclcpp::Node
 public:
     fissionFusion() : Node("fissionFusion")
     {
+        // config
+        fissionFusion::configure("/home/tianfu/fission_fusion_ws/src/fission_fusion/config/config.yaml");
+
         // subscription
         pose_subscription_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
             "pose", 10, std::bind(&fissionFusion::pose_callback, this, std::placeholders::_1));
@@ -88,7 +92,6 @@ private:
     nav_msgs::msg::Path path_msg;
     nav_msgs::msg::Path path_predict;
     sensor_msgs::msg::PointCloud2 proximity_point;
-    std::map<std::string, geometry_msgs::msg::PoseStamped> poses_;
 
     void pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
     {
@@ -152,12 +155,16 @@ private:
      **************************************************************************/
     double SDRM_linear_velocity;
     double SDRM_angular_velocity;
-    double lambda_random_ = 0.95; //0.95
+    double lambda_random_ = 0.95; // 0.95
     double lambda_social_ = 22;
     std::string selected_topic;
     geometry_msgs::msg::PoseStamped SDRM_social_target;
+    // all the other's pose  ["/botxx/pose" pose]
+    std::map<std::string, geometry_msgs::msg::PoseStamped> poses_;
+    // socail influence level
+    std::map<std::string, double> value_social_influence;
 
-    //PD parameters
+    // PD parameters
     double prev_distance_error = 0;
     double prev_angle_error = 0;
     double control_loop_duration = 0.01;
@@ -168,28 +175,38 @@ private:
     double max_velocity = 8;
     double max_omega = 5;
 
-    //follow neighbour
-    double neighbour_range_size = 10;
+    // follow neighbour
+    double neighbour_range_size = 40;
+    double social_lambda_increase = 1.1;
+    double social_lambda_decrease = 0.9;
+    double social_distance = 5;
 
-    //simulation time
+    // simulation time
     double poisson_process_duration_time = 15;
     double roosting_duration_time = 65;
     double foraging_duration_time = 100;
+
+    int num_of_day = 0;
+
     rclcpp::Time now_ = this->get_clock()->now();
     rclcpp::Time next_trigger_time_random_ = now_;
     rclcpp::Time next_trigger_time_social_ = now_;
-    rclcpp::Time poisson_process_time = now_ + rclcpp::Duration(poisson_process_duration_time, 0);
-    rclcpp::Time roosting_time = now_ + rclcpp::Duration(roosting_duration_time, 0);
-    rclcpp::Time foraging_time = now_ + rclcpp::Duration(foraging_duration_time, 0);
+    rclcpp::Time poisson_process_time = now_;
+    rclcpp::Time roosting_time = now_;
+    rclcpp::Time foraging_time = now_;
     std::string current_decision_;
 
-    //sub all the robots' pose
+    // sub all the robots' pose
     void update_subscriptions();
-    //  
+    //
     void SDRM_choose_indival_follow();
-    //control step
+    // control step loop
     void SDRM_controller_step();
+
     void SDRM_choose_indival_from_neighbour(double neighbour_distance_threshold);
+    // update Social Status
+    void SDRM_update_Social_Status();
+
     double generate_exponential(double lambda);
     void SDRM_random_walk();
     void SDRM_social_influence();
@@ -200,6 +217,11 @@ private:
      * skybat controller
      **************************************************************************/
     void skybat_controller_step();
+
+    /*************************************************************************
+     * configure
+     **************************************************************************/
+    void configure(const std::string &yaml_file);
 
     // subscriper
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_subscription_;

@@ -62,7 +62,7 @@ void fissionFusion::handleProximityAvoidance(const sensor_msgs::msg::PointCloud2
         }
         if (distance < 10) // 如果障碍物非常近
         {
-            cmd_vel.linear.x = abs(angle) < 1 ? -1 : 1; // 后退
+            cmd_vel.linear.x = abs(angle) < 1 ? -2 : 2; // 后退
             cmd_vel.angular.z = angle > 0 ? -5 : 5;     // 根据角度调整后退方向
             // RCLCPP_INFO(this->get_logger(), "go back...");
         }
@@ -83,10 +83,74 @@ void fissionFusion::avoidance()
     fissionFusion::handleProximityAvoidance(proximity_point);
 }
 
+void fissionFusion::configure(const std::string &yaml_file)
+{
+    try
+    {
+        YAML::Node yaml = YAML::LoadFile(yaml_file);
+
+        // SDRM Controller
+        lambda_random_ = yaml["lambda_random"].as<double>();
+        lambda_social_ = yaml["lambda_social"].as<double>();
+
+        // PD Parameters
+        prev_distance_error = yaml["pd_parameters"]["prev_distance_error"].as<double>();
+        prev_angle_error = yaml["pd_parameters"]["prev_angle_error"].as<double>();
+        control_loop_duration = yaml["pd_parameters"]["control_loop_duration"].as<double>();
+        Kp_distance = yaml["pd_parameters"]["Kp_distance"].as<double>();
+        Kd_distance = yaml["pd_parameters"]["Kd_distance"].as<double>();
+        Kp_angle = yaml["pd_parameters"]["Kp_angle"].as<double>();
+        Kd_angle = yaml["pd_parameters"]["Kd_angle"].as<double>();
+        max_velocity = yaml["pd_parameters"]["max_velocity"].as<double>();
+        max_omega = yaml["pd_parameters"]["max_omega"].as<double>();
+
+        // Follow Neighbour Parameters
+        neighbour_range_size = yaml["follow_neighbour"]["neighbour_range_size"].as<double>();
+        social_lambda_increase = yaml["follow_neighbour"]["social_lambda_increase"].as<double>();
+        social_lambda_decrease = yaml["follow_neighbour"]["social_lambda_decrease"].as<double>();
+        social_distance = yaml["follow_neighbour"]["social_distance"].as<double>();
+
+        // Simulation Time Parameters
+        poisson_process_duration_time = yaml["simulation_time"]["poisson_process_duration_time"].as<double>();
+        roosting_duration_time = yaml["simulation_time"]["roosting_duration_time"].as<double>();
+        foraging_duration_time = yaml["simulation_time"]["foraging_duration_time"].as<double>();
+
+        // Print parameters to verify loading
+        std::cout << "Lambda Random: " << lambda_random_ << std::endl;
+        std::cout << "Lambda Social: " << lambda_social_ << std::endl;
+
+        // PD Parameters
+        std::cout << "PD Prev Distance Error: " << prev_distance_error << std::endl;
+        std::cout << "PD Prev Angle Error: " << prev_angle_error << std::endl;
+        std::cout << "PD Control Loop Duration: " << control_loop_duration << std::endl;
+        std::cout << "PD Kp Distance: " << Kp_distance << std::endl;
+        std::cout << "PD Kd Distance: " << Kd_distance << std::endl;
+        std::cout << "PD Kp Angle: " << Kp_angle << std::endl;
+        std::cout << "PD Kd Angle: " << Kd_angle << std::endl;
+        std::cout << "PD Max Velocity: " << max_velocity << std::endl;
+        std::cout << "PD Max Omega: " << max_omega << std::endl;
+
+        // Follow Neighbour Parameters
+        std::cout << "Follow Neighbour Range Size: " << neighbour_range_size << std::endl;
+        std::cout << "Follow Neighbour Social Lambda Increase: " << social_lambda_increase << std::endl;
+        std::cout << "Follow Neighbour Social Lambda Decrease: " << social_lambda_decrease << std::endl;
+        std::cout << "Follow Neighbour Social Distance: " << social_distance << std::endl;
+
+        // Simulation Time Parameters
+        std::cout << "Simulation Poisson Process Duration Time: " << poisson_process_duration_time << std::endl;
+        std::cout << "Simulation Roosting Duration Time: " << roosting_duration_time << std::endl;
+        std::cout << "Simulation Foraging Duration Time: " << foraging_duration_time << std::endl;
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << "Error loading configuration: " << e.what() << std::endl;
+    }
+}
+
 int main(int argc, char *argv[])
 {
     rclcpp::init(argc, argv); // Initialize the ROS 2 system
     rclcpp::spin(std::make_shared<fissionFusion>());
-    rclcpp::shutdown(); 
+    rclcpp::shutdown();
     return 0;
 }
