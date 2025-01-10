@@ -46,17 +46,26 @@ void fissionFusion::handleProximityAvoidance(const sensor_msgs::msg::PointCloud2
         }
         else
         {
+            // 创建随机设备和生成器
+            std::random_device rd;
+            std::mt19937 gen(rd());
+
+            // 定义随机数分布范围 [0, 2]
+            std::uniform_real_distribution<> dis(0.0, 2.0);
+
+            // 生成随机速度
+            double random_speed = dis(gen);
             // 如果角度不在直行范围内，根据角度转向
             if (angle < 0.0)
             {
                 cmd_vel.linear.x = 0.0;
-                cmd_vel.angular.z = -1.5; // 左转
+                cmd_vel.angular.z = 0 - random_speed; // 左转
                 // RCLCPP_INFO(this->get_logger(), "turn left...");
             }
             else
             {
                 cmd_vel.linear.x = 0.0;
-                cmd_vel.angular.z = 1.5; // 右转
+                cmd_vel.angular.z = random_speed; // 右转
                 // RCLCPP_INFO(this->get_logger(), "turn right...");
             }
         }

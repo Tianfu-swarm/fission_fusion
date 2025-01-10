@@ -1,7 +1,7 @@
 ## SDRM Controller
 # probility
-lambda_random: 0  # Default value: 0.95
-lambda_social: 1000.0  # Default value: 22.0
+lambda_random: 0.1  # Default value: 0.95
+lambda_social: 0.9  # Default value: 22.0
 
 # PD parameters
 pd_parameters:
@@ -17,14 +17,14 @@ pd_parameters:
 
 # Follow Neighbour Parameters
 follow_neighbour:
-  neighbour_range_size: 10.0          # Range size for neighbors
-  social_lambda_increase: 1.0         # Factor to increase social lambda
-  social_lambda_decrease: 1.0         # Factor to decrease social lambda
+  neighbour_range_size: 50.0          # Range size for neighbors
+  social_lambda_increase: 1.8        # Factor to increase social lambda
+  social_lambda_decrease: 0.2        # Factor to decrease social lambda
   social_distance: 5.0                # Social interaction distance
 
 # Simulation Time Parameters
 simulation_time:
-  poisson_process_duration_time: 10.0 # Duration for Poisson process
-  roosting_duration_time: 50.0        # Roosting duration
-  foraging_duration_time: 50.0       # Foraging duration
+  poisson_process_duration_time: 5.0 # Duration for Poisson process
+  roosting_duration_time: 30.0        # Roosting duration
+  foraging_duration_time: 15.0       # Foraging duration
 

@@ -176,6 +176,7 @@ private:
     double max_omega = 5;
 
     // follow neighbour
+    bool social_status_updated_ = false;
     double neighbour_range_size = 40;
     double social_lambda_increase = 1.1;
     double social_lambda_decrease = 0.9;
