@@ -1,5 +1,32 @@
 #include "system_init.h"
 
+void fissionFusion::SDRM_rab_actuator()
+{
+    std::string number_string;
+    // 遍历字符串并提取数字字符
+    for (char c : selected_topic)
+    {
+        if (isdigit(c))
+        {
+            number_string += c;
+        }
+    }
+    
+    if (!number_string.empty())
+    {
+        int extracted_number = std::stoi(number_string);
+
+        std_msgs::msg::Float64MultiArray rab_actuator;
+        rab_actuator.data.push_back(extracted_number);
+
+        rab_actuator_publisher_->publish(rab_actuator);
+    }
+    else
+    {
+        //std::cout << "没有找到数字" << std::endl;
+    }
+}
+
 void fissionFusion::SDRM_update_Social_Status()
 {
     for (const auto &pose : poses_)
@@ -263,7 +290,6 @@ void fissionFusion::SDRM_choose_indival_from_neighbour(double neighbour_distance
     int selected_index = dis(gen);
     selected_topic = eligible_topics_social_[selected_index].first;
 
-    // 打印权重百分比
     // 计算所有权重的总和
     double total_weight = 0.0;
     for (const auto &topic : eligible_topics_social_)
@@ -422,6 +448,7 @@ void fissionFusion::SDRM_controller_step()
     }
     else if (bats_now >= poisson_process_time && bats_now < roosting_time)
     {
+        SDRM_rab_actuator();
         // Roosting time
         if (current_decision_ == "random_walk")
         {

@@ -203,10 +203,14 @@ private:
     void SDRM_choose_indival_follow();
     // control step loop
     void SDRM_controller_step();
-
+    //choose from neighbor
     void SDRM_choose_indival_from_neighbour(double neighbour_distance_threshold);
     // update Social Status
     void SDRM_update_Social_Status();
+    //rab pub
+    void SDRM_rab_actuator();
+    //caulte group size from rab message
+    //void SDRM_caulte_groupsize();
 
     double generate_exponential(double lambda);
     void SDRM_random_walk();
