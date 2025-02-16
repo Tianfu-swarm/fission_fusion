@@ -64,6 +64,10 @@ public:
         {
             current_controller_ = std::bind(&fissionFusion::skybat_controller_step, this);
         }
+        else if (controller_type == "sffm")
+        {
+            current_controller_ = std::bind(&fissionFusion::sffm_control_step, this);
+        }
         else
         {
             RCLCPP_WARN(this->get_logger(), "Unknown controller type. Defaulting to SDRM.");
@@ -222,6 +226,12 @@ private:
     void SDRM_social_influence();
     void SDRM_poisson_process();
     void SDRM_publish_velocity();
+
+    /*************************************************************************
+     * sffm controller
+     **************************************************************************/
+
+    void sffm_controler_step();
 
     /*************************************************************************
      * skybat controller
