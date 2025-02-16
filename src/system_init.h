@@ -121,6 +121,14 @@ private:
     }
 
     /*************************************************************************
+     * global service
+     **************************************************************************/
+    // sub all the robots' pose
+    void update_subscriptions();
+    // all the other's pose  ["/botxx/pose", pose]
+    std::map<std::string, geometry_msgs::msg::PoseStamped> poses_;
+
+    /*************************************************************************
      * Avoidance
      **************************************************************************/
     bool isAbstacle;
@@ -159,8 +167,6 @@ private:
     double lambda_social_ = 22;
     std::string selected_topic;
     geometry_msgs::msg::PoseStamped SDRM_social_target;
-    // all the other's pose  ["/botxx/pose" pose]
-    std::map<std::string, geometry_msgs::msg::PoseStamped> poses_;
     // socail influence level
     std::map<std::string, double> value_social_influence;
 
@@ -197,8 +203,6 @@ private:
     rclcpp::Time foraging_time = now_;
     std::string current_decision_;
 
-    // sub all the robots' pose
-    void update_subscriptions();
     //
     void SDRM_choose_indival_follow();
     // control step loop
@@ -207,6 +211,7 @@ private:
     void SDRM_choose_indival_from_neighbour(double neighbour_distance_threshold);
     // update Social Status
     void SDRM_update_Social_Status();
+    
     //rab pub
     void SDRM_rab_actuator();
     //caulte group size from rab message

@@ -156,6 +156,36 @@ void fissionFusion::configure(const std::string &yaml_file)
     }
 }
 
+void fissionFusion::update_subscriptions()
+{
+    // 获取当前系统中的所有话题
+    auto topic_names_and_types = this->get_topic_names_and_types();
+    for (const auto &topic : topic_names_and_types)
+    {
+        const auto &topic_name = topic.first;
+
+        // 检查是否为目标话题：包含 "/pose" 且未订阅
+        if (topic_name.find("/pose") != std::string::npos &&
+            subscriptions_.find(topic_name) == subscriptions_.end())
+        {
+            // 动态创建订阅器
+            auto sub = this->create_subscription<geometry_msgs::msg::PoseStamped>(
+                topic_name,
+                10,
+                [this, topic_name](geometry_msgs::msg::PoseStamped::SharedPtr msg)
+                {
+                    all_pose_callback(topic_name, msg);
+                });
+
+            // 保存到订阅列表中，防止重复订阅
+            subscriptions_[topic_name] = sub;
+
+            // 初始化对应的 pose 数据
+            poses_[topic_name] = geometry_msgs::msg::PoseStamped();
+        }
+    }
+}
+
 int main(int argc, char *argv[])
 {
     rclcpp::init(argc, argv); // Initialize the ROS 2 system
