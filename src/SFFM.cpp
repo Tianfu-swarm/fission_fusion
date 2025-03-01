@@ -24,19 +24,33 @@ void fissionFusion::sffm_controler_step()
     {
         double actual_group_size = sffm_detect_group_size();
         double error_size = expected_subgroup_size - actual_group_size;
-        std::cout << "error size:" << error_size << std::endl;
-        if (abs(error_size) > 2)
+        // std::cout << "error size:" << error_size << std::endl;
+        if (abs(error_size) > 1)
         {
-            std::pair<double, double> result = sffm_estimate_posibility_range(n_groupsize, area_group, error_size);
-            follow_posibility = result.first;
-            range_neighbor = result.second;
+            if (error_size > 0 && actual_group_size > 1)
+            {
+                time_threshold++;
+            }
+            else
+            {
+                time_threshold = 0;
+            }
 
-            sffm_follow_target = sffm_choose_follow_target(follow_posibility, range_neighbor);
-            std::cout << "actual group size:" << actual_group_size << " follow posibility:" << follow_posibility << " range_neighbor: " << range_neighbor << std::endl;
+            if (time_threshold > 5)
+            {
+                selected_topic.clear();
+            }
+            else
+            {
+                std::pair<double, double> result = sffm_estimate_posibility_range(n_groupsize, area_group, error_size);
+                follow_posibility = result.first;
+                range_neighbor = result.second;
+                sffm_follow_target = sffm_choose_follow_target(follow_posibility, range_neighbor); // select_topic in this function
+            }
         }
     }
 
-    if (sffm_follow_target.header.frame_id != "none")
+    if (!selected_topic.empty())
     {
         SDRM_social_target = poses_[selected_topic];
         fissionFusion::SDRM_social_influence();
@@ -48,6 +62,9 @@ void fissionFusion::sffm_controler_step()
         fissionFusion::SDRM_random_walk();
         fissionFusion::SDRM_publish_velocity();
     }
+
+    std::string current_namespace = this->get_namespace();
+    std::cout << "current_namespace " << current_namespace << std::endl;
 }
 
 bool fissionFusion::isGroupSizeStable(const std::vector<double> &history_group_size, double threshold)
@@ -85,14 +102,26 @@ geometry_msgs::msg::PoseStamped fissionFusion::sffm_choose_follow_target(double 
 
     if (random_value > follow_probability)
     {   
+        selected_topic.clear();  //no target
         return target_pose; // 不跟随，返回默认空目标
     }
+
+    std::string current_namespace = this->get_namespace();
 
     // 2. 查找半径 follow_radius 内的目标
     std::vector<std::pair<std::string, geometry_msgs::msg::PoseStamped>> candidates;
     for (const auto &[id, pose] : poses_)
-    {
-        if (id == "current")
+    {   
+        const std::string &topic_name = id;
+        // 提取话题的命名空间
+        size_t first_slash = topic_name.find('/');
+        size_t second_slash = topic_name.find('/', first_slash + 1);
+
+        // 确保找到第二个斜杠，提取命名空间
+        std::string topic_namespace = (second_slash != std::string::npos)
+                                          ? topic_name.substr(0, second_slash)
+                                          : topic_name;
+        if (topic_namespace == current_namespace)
             continue; // 不能自己跟随自己
 
         double distance = calculate_distance(current_pose, pose);
@@ -115,6 +144,7 @@ geometry_msgs::msg::PoseStamped fissionFusion::sffm_choose_follow_target(double 
     else
     {
         geometry_msgs::msg::PoseStamped no_target;
+        selected_topic = current_namespace;
         return no_target; // 没有可选目标，返回默认空目标和空 id
     }
 }
@@ -193,13 +223,13 @@ std::pair<double, double> fissionFusion::sffm_estimate_posibility_range(double n
     {
         estimate_posibility = std::min(1.0, 1 + K_p * error_size);
         estimate_range = std::max(0.0, 0 + K_r * error_size);
-        std::cout << "fusion - range_neighbor: " << range_neighbor << " error_size: " << error_size << " estimate_range: " << estimate_range << std::endl;
+        //std::cout << "fusion - range_neighbor: " << range_neighbor << " error_size: " << error_size << " estimate_range: " << estimate_range << std::endl;
     }
     else if (error_size < 0) // fission
     {
         estimate_posibility = std::min(1.0, 1 + K_p * error_size);
-        estimate_range = std::max(0.0, 25 + K_r * error_size);
-        std::cout << "range_neighbor: " << range_neighbor << " error_size: " << error_size << " estimate_range: " << estimate_range << std::endl;
+        estimate_range = 5;//std::max(0.0, 25 + K_r * error_size);
+        //std::cout << "range_neighbor: " << range_neighbor << " error_size: " << error_size << " estimate_range: " << estimate_range << std::endl;
     }
 
     return std::make_pair(estimate_posibility, estimate_range);

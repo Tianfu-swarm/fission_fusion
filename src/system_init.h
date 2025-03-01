@@ -262,6 +262,8 @@ private:
     double max_range = 30;
     double expected_subgroup_size = 10;
 
+    int time_threshold = 0;
+
     std::vector<double> history_group_size;
 
     /*************************************************************************

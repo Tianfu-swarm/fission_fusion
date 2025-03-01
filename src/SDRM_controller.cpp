@@ -90,7 +90,7 @@ void fissionFusion::SDRM_update_Social_Status()
 
 void fissionFusion::SDRM_random_walk()
 {
-    // selected_topic.clear();
+    //selected_topic.clear();
 
     double mean_linear_velocity = 4;
     double stddev_linear_velocity = 4;
