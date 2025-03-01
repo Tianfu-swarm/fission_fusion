@@ -1,3 +1,5 @@
+#include <set>
+#include <queue>
 #include <cmath>
 #include <vector>
 #include <string>
@@ -66,7 +68,7 @@ public:
         }
         else if (controller_type == "sffm")
         {
-            current_controller_ = std::bind(&fissionFusion::sffm_control_step, this);
+            current_controller_ = std::bind(&fissionFusion::sffm_controler_step, this);
         }
         else
         {
@@ -232,6 +234,35 @@ private:
      **************************************************************************/
 
     void sffm_controler_step();
+
+    double sffm_detect_group_size();
+
+    std::pair<double, double> sffm_estimate_posibility_range(double n_groupsize,
+                                                            double area_group,
+                                                            double error_size);
+
+
+    geometry_msgs::msg::PoseStamped sffm_choose_follow_target(double follow_probability,
+                                                              double follow_radius);
+
+    double calculate_distance(const geometry_msgs::msg::PoseStamped &p1,
+                                const geometry_msgs::msg::PoseStamped &p2);
+
+    bool isGroupSizeStable(const std::vector<double> &history_group_size, double threshold);
+
+    geometry_msgs::msg::PoseStamped sffm_follow_target;
+    bool has_chosen_target = false;
+    double group_size;
+    double group_size_distance_threshold = 1;
+
+    double n_groupsize = 42;
+    double area_group = 160;
+    double follow_posibility = 1;
+    double range_neighbor = 5;
+    double max_range = 30;
+    double expected_subgroup_size = 10;
+
+    std::vector<double> history_group_size;
 
     /*************************************************************************
      * skybat controller

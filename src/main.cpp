@@ -124,31 +124,31 @@ void fissionFusion::configure(const std::string &yaml_file)
         roosting_duration_time = yaml["simulation_time"]["roosting_duration_time"].as<double>();
         foraging_duration_time = yaml["simulation_time"]["foraging_duration_time"].as<double>();
 
-        // Print parameters to verify loading
-        std::cout << "Lambda Random: " << lambda_random_ << std::endl;
-        std::cout << "Lambda Social: " << lambda_social_ << std::endl;
+        // // Print parameters to verify loading
+        // std::cout << "Lambda Random: " << lambda_random_ << std::endl;
+        // std::cout << "Lambda Social: " << lambda_social_ << std::endl;
 
-        // PD Parameters
-        std::cout << "PD Prev Distance Error: " << prev_distance_error << std::endl;
-        std::cout << "PD Prev Angle Error: " << prev_angle_error << std::endl;
-        std::cout << "PD Control Loop Duration: " << control_loop_duration << std::endl;
-        std::cout << "PD Kp Distance: " << Kp_distance << std::endl;
-        std::cout << "PD Kd Distance: " << Kd_distance << std::endl;
-        std::cout << "PD Kp Angle: " << Kp_angle << std::endl;
-        std::cout << "PD Kd Angle: " << Kd_angle << std::endl;
-        std::cout << "PD Max Velocity: " << max_velocity << std::endl;
-        std::cout << "PD Max Omega: " << max_omega << std::endl;
+        // // PD Parameters
+        // std::cout << "PD Prev Distance Error: " << prev_distance_error << std::endl;
+        // std::cout << "PD Prev Angle Error: " << prev_angle_error << std::endl;
+        // std::cout << "PD Control Loop Duration: " << control_loop_duration << std::endl;
+        // std::cout << "PD Kp Distance: " << Kp_distance << std::endl;
+        // std::cout << "PD Kd Distance: " << Kd_distance << std::endl;
+        // std::cout << "PD Kp Angle: " << Kp_angle << std::endl;
+        // std::cout << "PD Kd Angle: " << Kd_angle << std::endl;
+        // std::cout << "PD Max Velocity: " << max_velocity << std::endl;
+        // std::cout << "PD Max Omega: " << max_omega << std::endl;
 
-        // Follow Neighbour Parameters
-        std::cout << "Follow Neighbour Range Size: " << neighbour_range_size << std::endl;
-        std::cout << "Follow Neighbour Social Lambda Increase: " << social_lambda_increase << std::endl;
-        std::cout << "Follow Neighbour Social Lambda Decrease: " << social_lambda_decrease << std::endl;
-        std::cout << "Follow Neighbour Social Distance: " << social_distance << std::endl;
+        // // Follow Neighbour Parameters
+        // std::cout << "Follow Neighbour Range Size: " << neighbour_range_size << std::endl;
+        // std::cout << "Follow Neighbour Social Lambda Increase: " << social_lambda_increase << std::endl;
+        // std::cout << "Follow Neighbour Social Lambda Decrease: " << social_lambda_decrease << std::endl;
+        // std::cout << "Follow Neighbour Social Distance: " << social_distance << std::endl;
 
-        // Simulation Time Parameters
-        std::cout << "Simulation Poisson Process Duration Time: " << poisson_process_duration_time << std::endl;
-        std::cout << "Simulation Roosting Duration Time: " << roosting_duration_time << std::endl;
-        std::cout << "Simulation Foraging Duration Time: " << foraging_duration_time << std::endl;
+        // // Simulation Time Parameters
+        // std::cout << "Simulation Poisson Process Duration Time: " << poisson_process_duration_time << std::endl;
+        // std::cout << "Simulation Roosting Duration Time: " << roosting_duration_time << std::endl;
+        // std::cout << "Simulation Foraging Duration Time: " << foraging_duration_time << std::endl;
     }
     catch (const std::exception &e)
     {

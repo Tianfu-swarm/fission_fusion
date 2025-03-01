@@ -288,7 +288,7 @@ void fissionFusion::SDRM_social_influence()
     if (selected_topic.empty())
     {
         // fissionFusion::SDRM_choose_indival_follow();
-        fissionFusion::SDRM_choose_indival_from_neighbour(neighbour_range_size);
+        //fissionFusion::SDRM_choose_indival_from_neighbour(neighbour_range_size);
         return;
     }
 

@@ -21,7 +21,12 @@ include_directories(
 )
 
 # Add the executable
-add_executable(fission_fusion src/P_controller.cpp src/visualization.cpp src/SDRM_controller.cpp src/main.cpp src/skybat_controller.cpp)
+add_executable(fission_fusion src/P_controller.cpp 
+                              src/visualization.cpp 
+                              src/SDRM_controller.cpp 
+                              src/main.cpp 
+                              src/skybat_controller.cpp
+                              src/SFFM.cpp)
 
 # Link dependencies to the executable
 ament_target_dependencies(fission_fusion

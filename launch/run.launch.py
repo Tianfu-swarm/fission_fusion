@@ -19,7 +19,7 @@ def generate_launch_description():
                 namespace=f'bot{i}',  
                 output='screen', 
                 parameters=[
-                {"controller_type": "SDRM"}  #  "SDRM" / "skybat" / "P"
+                {"controller_type": "sffm"}  #  "SDRM" / "skybat" / "P" /"sffm"
             ] 
             )
         )
