@@ -8,68 +8,118 @@
  */
 void fissionFusion::sffm_controler_step()
 {
-    if (poses_.size() < 1)
+    switch (robot_state)
+    {
+    case RANDOM_WALK:
+        fissionFusion::SDRM_random_walk();
+        fissionFusion::SDRM_publish_velocity();
+        break;
+
+    case FUSION:
+        // fusion in a larger group
+        // get a target to gather a group
+        fissionFusion::SDRM_social_influence();
+        fissionFusion::SDRM_publish_velocity();
+        break;
+
+    case FISSION:
+        // fission from a larger group
+        // first go far from the last group, and then looking for another group.
+        if (calculate_distance(SDRM_social_target, current_pose) << 1e-6)
+        {
+            fissionFusion::SDRM_random_walk();
+        }
+        else
+            fissionFusion::SDRM_social_influence();
+
+        fissionFusion::SDRM_publish_velocity();
+        break;
+
+    case STAY:
+        // stay in a group
+        SDRM_linear_velocity = 0;
+        SDRM_angular_velocity = 0;
+        fissionFusion::SDRM_publish_velocity();
+        break;
+    }
+
+        if (poses_.size() < 1)
     {
         return;
     }
 
-    if (history_group_size.size() >= 51)
+    if (history_group_size.size() >= (stay_time + 1))
     {
         history_group_size.clear(); // 移除所有元素
+
+        std::random_device rd;                            // 获取随机种子
+        std::mt19937 gen(rd());                           // 生成随机数引擎
+        std::uniform_int_distribution<int> dist(150, 300); // 生成 50 到 100 之间的整数
+        //stay_time = dist(gen);
+        //stay_time = 200;
     }
     double current_group_size = sffm_detect_group_size();
     history_group_size.push_back(current_group_size);
 
-    if (isGroupSizeStable(history_group_size, 1)) // in a group
-    {
-        double actual_group_size = sffm_detect_group_size();
-        double error_size = expected_subgroup_size - actual_group_size;
-        // std::cout << "error size:" << error_size << std::endl;
-        if (abs(error_size) > 1)
-        {
-            if (error_size > 0 && actual_group_size > 1)
-            {
-                time_threshold++;
-            }
-            else
-            {
-                time_threshold = 0;
-            }
+    // if (isGroupSizeStable(history_group_size, 1)) // in a group
+    // {
+    //     double actual_group_size = sffm_detect_group_size();
+    //     double error_size = expected_subgroup_size - actual_group_size;
+    //     // std::cout << "error size:" << error_size << std::endl;
+    //     if (abs(error_size) > 2)
+    //     {
+    //         std::cout << "error size: " << error_size << std::endl;
+    //         if (expected_subgroup_size > actual_group_size && actual_group_size > 1)
+    //         {
+    //             time_threshold++;
+    //         }
+    //         else
+    //         {
+    //             time_threshold = 0;
+    //         }
 
-            if (time_threshold > 5)
-            {
-                selected_topic.clear();
-            }
-            else
-            {
-                std::pair<double, double> result = sffm_estimate_posibility_range(n_groupsize, area_group, error_size);
-                follow_posibility = result.first;
-                range_neighbor = result.second;
-                sffm_follow_target = sffm_choose_follow_target(follow_posibility, range_neighbor); // select_topic in this function
-            }
-        }
-    }
+    //         if (time_threshold > 5)
+    //         {
+    //             selected_topic.clear();
+    //         }
+    //         else
+    //         {
+    //             std::pair<double, double> result = sffm_estimate_posibility_range(n_groupsize, area_group, error_size);
+    //             follow_posibility = result.first;
+    //             range_neighbor = result.second;
+    //             sffm_follow_target = sffm_choose_follow_target(follow_posibility, range_neighbor); // select_topic in this function
+    //         }
+    //     }
+    //     else
+    //     {
+    //         follow_posibility = 1.0;
+    //         range_neighbor = 1;
+    //         sffm_follow_target = sffm_choose_follow_target(follow_posibility, range_neighbor);
+    //     }
+    // }
 
-    if (!selected_topic.empty())
-    {
-        SDRM_social_target = poses_[selected_topic];
-        fissionFusion::SDRM_social_influence();
-        fissionFusion::SDRM_publish_velocity();
-    }
-    else
-    {
-        SDRM_social_target.header.frame_id.clear();
-        fissionFusion::SDRM_random_walk();
-        fissionFusion::SDRM_publish_velocity();
-    }
-
-    std::string current_namespace = this->get_namespace();
-    std::cout << "current_namespace " << current_namespace << std::endl;
+    // if (!selected_topic.empty())
+    // {
+    //     SDRM_social_target = poses_[selected_topic];
+    //     fissionFusion::SDRM_social_influence();
+    //     fissionFusion::SDRM_publish_velocity();
+    //     random_time = 0;
+    // }
+    // else
+    // {
+    //     if (random_time < 2000)
+    //     {
+    //         SDRM_social_target.header.frame_id.clear();
+    //         fissionFusion::SDRM_random_walk();
+    //         fissionFusion::SDRM_publish_velocity();
+    //         random_time++;
+    //     }
+    // }
 }
 
 bool fissionFusion::isGroupSizeStable(const std::vector<double> &history_group_size, double threshold)
 {
-    if (history_group_size.size() < 50)
+    if (history_group_size.size() < stay_time)
         return false; // 数据不足，无法判断
 
     // 计算均值
@@ -101,9 +151,9 @@ geometry_msgs::msg::PoseStamped fissionFusion::sffm_choose_follow_target(double 
     double random_value = dist(rng); // 生成随机数
 
     if (random_value > follow_probability)
-    {   
-        selected_topic.clear();  //no target
-        return target_pose; // 不跟随，返回默认空目标
+    {
+        selected_topic.clear(); // no target
+        return target_pose;     // 不跟随，返回默认空目标
     }
 
     std::string current_namespace = this->get_namespace();
@@ -111,7 +161,7 @@ geometry_msgs::msg::PoseStamped fissionFusion::sffm_choose_follow_target(double 
     // 2. 查找半径 follow_radius 内的目标
     std::vector<std::pair<std::string, geometry_msgs::msg::PoseStamped>> candidates;
     for (const auto &[id, pose] : poses_)
-    {   
+    {
         const std::string &topic_name = id;
         // 提取话题的命名空间
         size_t first_slash = topic_name.find('/');
@@ -133,6 +183,51 @@ geometry_msgs::msg::PoseStamped fissionFusion::sffm_choose_follow_target(double 
             candidates.emplace_back(id, modified_pose);
         }
     }
+    // 降低大群的吸引值-剔除一半
+    std::vector<std::pair<std::string, geometry_msgs::msg::PoseStamped>> filtered = candidates;
+    std::vector<bool> removed(filtered.size(), false);
+    double threshold = 2;
+
+    for (size_t i = 0; i < filtered.size(); ++i)
+    {
+        if (removed[i])
+            continue; // 如果已经标记为删除，则跳过
+
+        std::vector<size_t> close_indices;
+        close_indices.push_back(i);
+
+        // 查找与当前点接近的点
+        for (size_t j = i + 1; j < filtered.size(); ++j)
+        {
+            if (!removed[j] && calculate_distance(filtered[i].second, filtered[j].second) < threshold)
+            {
+                close_indices.push_back(j);
+            }
+        }
+
+        // 如果找到多个相近的点，则剔除一半
+        if (close_indices.size() > expected_subgroup_size)
+        {
+            std::shuffle(close_indices.begin(), close_indices.end(), std::mt19937{std::random_device{}()});
+            size_t to_remove = close_indices.size() / 1; // 只删除一半
+            for (size_t k = 0; k < to_remove; ++k)
+            {
+                removed[close_indices[k]] = true;
+            }
+        }
+    }
+
+    // 生成最终的候选点列表
+    std::vector<std::pair<std::string, geometry_msgs::msg::PoseStamped>> final_candidates;
+    for (size_t i = 0; i < filtered.size(); ++i)
+    {
+        if (!removed[i])
+        {
+            final_candidates.push_back(filtered[i]);
+        }
+    }
+
+    candidates = final_candidates;
 
     // 3. 从候选者中随机选择一个目标
     if (!candidates.empty())
@@ -144,7 +239,7 @@ geometry_msgs::msg::PoseStamped fissionFusion::sffm_choose_follow_target(double 
     else
     {
         geometry_msgs::msg::PoseStamped no_target;
-        selected_topic = current_namespace;
+        selected_topic.clear();
         return no_target; // 没有可选目标，返回默认空目标和空 id
     }
 }
@@ -153,7 +248,7 @@ double fissionFusion::sffm_detect_group_size()
 {
     std::set<std::string> visited; // 记录访问过的粒子
     std::queue<std::string> q;     // 用于 BFS 遍历群体
-    double group_size = 0;                // 计数群体大小
+    double group_size = 0;         // 计数群体大小
 
     // 1. 找到 current_pose 在 poses_ 中的 key
     std::string current_key = "";
@@ -222,14 +317,12 @@ std::pair<double, double> fissionFusion::sffm_estimate_posibility_range(double n
     if (error_size > 0) // fussion
     {
         estimate_posibility = std::min(1.0, 1 + K_p * error_size);
-        estimate_range = std::max(0.0, 0 + K_r * error_size);
-        //std::cout << "fusion - range_neighbor: " << range_neighbor << " error_size: " << error_size << " estimate_range: " << estimate_range << std::endl;
+        estimate_range = std::max(0.0, 5 + K_r * error_size);
     }
     else if (error_size < 0) // fission
     {
-        estimate_posibility = std::min(1.0, 1 + K_p * error_size);
-        estimate_range = 5;//std::max(0.0, 25 + K_r * error_size);
-        //std::cout << "range_neighbor: " << range_neighbor << " error_size: " << error_size << " estimate_range: " << estimate_range << std::endl;
+        estimate_posibility = std::min(1.0, 1 + K_p * error_size + 0.02);
+        estimate_range = 2; // std::max(0.0, 25 + K_r * error_size);
     }
 
     return std::make_pair(estimate_posibility, estimate_range);

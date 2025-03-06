@@ -253,16 +253,28 @@ private:
     geometry_msgs::msg::PoseStamped sffm_follow_target;
     bool has_chosen_target = false;
     double group_size;
-    double group_size_distance_threshold = 1;
+    double group_size_distance_threshold = 2;
 
     double n_groupsize = 42;
     double area_group = 160;
     double follow_posibility = 1;
     double range_neighbor = 5;
     double max_range = 30;
-    double expected_subgroup_size = 10;
+    double expected_subgroup_size = 11;
 
+    int random_time = 0;
+    int stay_time = 200;
     int time_threshold = 0;
+
+    enum robot_state
+    {
+        FUSION,
+        FISSION,
+        STAY,
+        RANDOM_WALK
+    };
+
+    robot_state sffm_state = RANDOM_WALK;
 
     std::vector<double> history_group_size;
 
