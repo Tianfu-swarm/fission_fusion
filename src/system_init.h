@@ -213,15 +213,15 @@ private:
     void SDRM_choose_indival_follow();
     // control step loop
     void SDRM_controller_step();
-    //choose from neighbor
+    // choose from neighbor
     void SDRM_choose_indival_from_neighbour(double neighbour_distance_threshold);
     // update Social Status
     void SDRM_update_Social_Status();
-    
-    //rab pub
+
+    // rab pub
     void SDRM_rab_actuator();
-    //caulte group size from rab message
-    //void SDRM_caulte_groupsize();
+    // caulte group size from rab message
+    // void SDRM_caulte_groupsize();
 
     double generate_exponential(double lambda);
     void SDRM_random_walk();
@@ -233,39 +233,6 @@ private:
      * sffm controller
      **************************************************************************/
 
-    void sffm_controler_step();
-
-    double sffm_detect_group_size();
-
-    std::pair<double, double> sffm_estimate_posibility_range(double n_groupsize,
-                                                            double area_group,
-                                                            double error_size);
-
-
-    geometry_msgs::msg::PoseStamped sffm_choose_follow_target(double follow_probability,
-                                                              double follow_radius);
-
-    double calculate_distance(const geometry_msgs::msg::PoseStamped &p1,
-                                const geometry_msgs::msg::PoseStamped &p2);
-
-    bool isGroupSizeStable(const std::vector<double> &history_group_size, double threshold);
-
-    geometry_msgs::msg::PoseStamped sffm_follow_target;
-    bool has_chosen_target = false;
-    double group_size;
-    double group_size_distance_threshold = 2;
-
-    double n_groupsize = 42;
-    double area_group = 160;
-    double follow_posibility = 1;
-    double range_neighbor = 5;
-    double max_range = 30;
-    double expected_subgroup_size = 11;
-
-    int random_time = 0;
-    int stay_time = 200;
-    int time_threshold = 0;
-
     enum robot_state
     {
         FUSION,
@@ -274,7 +241,65 @@ private:
         RANDOM_WALK
     };
 
-    robot_state sffm_state = RANDOM_WALK;
+    robot_state current_state = RANDOM_WALK;
+
+    void sffm_controler_step();
+
+    double sffm_detect_group_size();
+
+    // 计算二项分布的概率质量函数 (PMF)
+    double binomial_pmf(int n, int m, double p);
+
+    // 计算对数正态分布的概率密度函数 (PDF)
+    double lognormal_pdf(double x, double mu, double sigma);
+
+    // 计算最优 r，使得 mu 和 sigma 最匹配 best_mu 和 best_sigma
+    double estimate_range(double best_mu, double best_sigma, int num_robots, double arena_area);
+
+    // 计算最大似然估计 (MLE) 的 p, mu, sigma
+    std::tuple<double, double, double> maximum_likelihood_estimation(int total_robots, int total_observed_groups);
+
+    std::pair<double, double> sffm_estimate_posibility_range(double expected_subgroupsize,
+                                                             double arena_area,
+                                                             double nums_robots);
+
+    geometry_msgs::msg::PoseStamped sffm_choose_follow_target(double follow_posibility,
+                                                              double follow_radius);
+
+    double calculate_distance(const geometry_msgs::msg::PoseStamped &p1,
+                              const geometry_msgs::msg::PoseStamped &p2);
+
+    bool isGroupSizeStable(const std::vector<double> &history_group_size, double threshold);
+
+    std::vector<std::pair<std::string, geometry_msgs::msg::PoseStamped>> attrctive_of_group(std::vector<std::pair<std::string, geometry_msgs::msg::PoseStamped>> candidates);
+
+    robot_state update_state(robot_state current_robot_state);
+
+    geometry_msgs::msg::PoseStamped sffm_fission_pose;
+
+    geometry_msgs::msg::PoseStamped last_target_pose;
+    bool has_chosen_target = false;
+    double group_size;
+    double group_size_distance_threshold = 2;
+
+    double n_groupsize = 42;
+    double arena_range = 40;
+    double arena_area = arena_range * arena_range;
+    double follow_posibility = 1;
+    double follow_range = 5;
+    double max_range = 10;
+    double expected_subgroup_size = 10;
+    int groupsize_tolerance = 1;
+
+    // 记录进入 STAY 状态时的 group size
+    double initial_group_size;
+
+    rclcpp::Duration wait_time = rclcpp::Duration::from_seconds(0.0);
+    rclcpp::Time stay_start_time, fission_start_time;
+
+    double Waiting_time_scale_factor = 20;
+
+    int history_time = 5;
 
     std::vector<double> history_group_size;
 

@@ -1,9 +1,8 @@
 #include "system_init.h"
 
-
 /*************************************************************************
  * Estimation of target pose By received broadcast message
-**************************************************************************/
+ **************************************************************************/
 void fissionFusion::estimate_target_pose()
 {
     if (isPerceiveActive)
@@ -45,7 +44,7 @@ void fissionFusion::estimate_target_pose()
     for (size_t num = 0; num < rab_data.data.size() / 10; num++)
     {
         double hop_level = rab_data.data[num * 10 + 0];
-        double weight = 1.0 / hop_level; 
+        double weight = 1.0 / hop_level;
 
         double w_i = rab_data.data[num * 10 + 1];
         double x_i = rab_data.data[num * 10 + 2];
@@ -76,14 +75,14 @@ void fissionFusion::estimate_target_pose()
     target_pose.pose.orientation.x = x;
     target_pose.pose.orientation.y = y;
     target_pose.pose.orientation.z = z;
-    
+
     target_pose_publisher_->publish(target_pose);
 
     isEstimateActive = true;
 }
 /*************************************************************************
  * Perception of target pose By its own sensors
-**************************************************************************/
+ **************************************************************************/
 void fissionFusion::Perceive_target_pose()
 {
     if (target_pose.header.frame_id.empty())
@@ -124,12 +123,12 @@ void fissionFusion::Perceive_target_pose()
     target_pose.pose.orientation.w = z;
 
     target_pose_publisher_->publish(target_pose);
- 
+
     isPerceiveActive = true;
 }
 /*************************************************************************
  * Broadcasting via rab actuator
-**************************************************************************/
+ **************************************************************************/
 void fissionFusion::publish_rab_actuator()
 {
     if (!isPerceiveActive && !isEstimateActive)
@@ -173,7 +172,7 @@ void fissionFusion::velocityGenerator()
 
     double angle_error = angle_to_target - curent_angle;
 
-    double Kp_distance = 0.2; 
+    double Kp_distance = 0.2;
     double Kp_angle = 0.8;
 
     double v = Kp_distance * distance;
@@ -186,7 +185,7 @@ void fissionFusion::velocityGenerator()
     }
 
     geometry_msgs::msg::Twist cmd_msg;
-    cmd_msg.linear.x = v; 
+    cmd_msg.linear.x = v;
     cmd_msg.angular.z = omega;
     cmd_vel_publisher_->publish(cmd_msg);
 }

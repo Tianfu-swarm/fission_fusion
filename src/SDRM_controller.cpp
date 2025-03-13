@@ -11,7 +11,7 @@ void fissionFusion::SDRM_rab_actuator()
             number_string += c;
         }
     }
-    
+
     if (!number_string.empty())
     {
         int extracted_number = std::stoi(number_string);
@@ -23,7 +23,7 @@ void fissionFusion::SDRM_rab_actuator()
     }
     else
     {
-        //std::cout << "没有找到数字" << std::endl;
+        // std::cout << "没有找到数字" << std::endl;
     }
 }
 
@@ -87,10 +87,9 @@ void fissionFusion::SDRM_update_Social_Status()
     }
 }
 
-
 void fissionFusion::SDRM_random_walk()
 {
-    //selected_topic.clear();
+    // selected_topic.clear();
 
     double mean_linear_velocity = 4;
     double stddev_linear_velocity = 4;
@@ -278,8 +277,8 @@ void fissionFusion::SDRM_choose_indival_from_neighbour(double neighbour_distance
     }
 
     // 输出选中的话题
-    std::cout << "Selected neighbour topic: " << selected_topic 
-              << ", Percentage: " << std::fixed << std::setprecision(5) << selected_percentage << "%" 
+    std::cout << "Selected neighbour topic: " << selected_topic
+              << ", Percentage: " << std::fixed << std::setprecision(5) << selected_percentage << "%"
               << std::endl;
 }
 
@@ -288,7 +287,7 @@ void fissionFusion::SDRM_social_influence()
     if (selected_topic.empty())
     {
         // fissionFusion::SDRM_choose_indival_follow();
-        //fissionFusion::SDRM_choose_indival_from_neighbour(neighbour_range_size);
+        // fissionFusion::SDRM_choose_indival_from_neighbour(neighbour_range_size);
         return;
     }
 
@@ -423,9 +422,9 @@ void fissionFusion::SDRM_controller_step()
         // Roosting time
         if (current_decision_ == "random_walk")
         {
-            //SDRM_random_walk();
+            // SDRM_random_walk();
 
-            //stop
+            // stop
             SDRM_linear_velocity = 0;
             SDRM_angular_velocity = 0;
             // RCLCPP_INFO(this->get_logger(), "roosting-random walk");
@@ -439,7 +438,7 @@ void fissionFusion::SDRM_controller_step()
     {
         if (!social_status_updated_) // 检查是否需要更新社交状态
         {
-            SDRM_update_Social_Status(); 
+            SDRM_update_Social_Status();
             social_status_updated_ = true; // 标记已执行
         }
         // foraging time
@@ -449,14 +448,14 @@ void fissionFusion::SDRM_controller_step()
     }
     else if (bats_now >= foraging_time)
     {
-        //Reset all configurations
+        // Reset all configurations
         SDRM_social_target.header.frame_id.clear();
         now_ = this->get_clock()->now();
         poisson_process_time = now_ + rclcpp::Duration(poisson_process_duration_time, 0);
         roosting_time = poisson_process_time + rclcpp::Duration(roosting_duration_time, 0);
         foraging_time = roosting_time + rclcpp::Duration(foraging_duration_time, 0);
         social_status_updated_ = false;
-        
+
         // note the day
         num_of_day = num_of_day + 1;
         RCLCPP_INFO(this->get_logger(), "num_of_day:%d", num_of_day);

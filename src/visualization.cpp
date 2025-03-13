@@ -94,11 +94,11 @@ void fissionFusion::publish_follow_relation()
     auto marker = visualization_msgs::msg::Marker();
 
     // 设置 Marker 基本信息
-    marker.header.frame_id = "map"; 
+    marker.header.frame_id = "map";
     marker.header.stamp = this->get_clock()->now();
     marker.ns = "arrows";
     marker.id = 0;
-    marker.type = visualization_msgs::msg::Marker::ARROW; 
+    marker.type = visualization_msgs::msg::Marker::ARROW;
     marker.action = visualization_msgs::msg::Marker::ADD;
 
     // 设置箭头的起点和终点
@@ -114,8 +114,8 @@ void fissionFusion::publish_follow_relation()
     marker.points.push_back(end);
 
     marker.scale.x = 0.08; // 箭头的杆宽
-    marker.scale.y = 0.3; // 箭头的头宽
-    marker.scale.z = 0.0; // 忽略
+    marker.scale.y = 0.3;  // 箭头的头宽
+    marker.scale.z = 0.0;  // 忽略
 
     // 设置箭头的颜色
     marker.color.r = 0.0f; // 红色最大值
