@@ -5,6 +5,7 @@
 #include <string>
 #include <thread>
 #include <random>
+#include <fstream>
 #include <iostream>
 #include <yaml-cpp/yaml.h>
 #include "std_msgs/msg/string.hpp"
@@ -242,6 +243,7 @@ private:
     };
 
     robot_state current_state = RANDOM_WALK;
+    robot_state last_state;
 
     void sffm_controler_step();
 
@@ -280,26 +282,27 @@ private:
     geometry_msgs::msg::PoseStamped last_target_pose;
     bool has_chosen_target = false;
     double group_size;
-    double group_size_distance_threshold = 2;
+    double group_size_distance_threshold = 1;
 
     double n_groupsize = 42;
     double arena_range = 40;
     double arena_area = arena_range * arena_range;
     double follow_posibility = 1;
     double follow_range = 5;
-    double max_range = 10;
-    double expected_subgroup_size = 10;
-    int groupsize_tolerance = 1;
+    double max_range = 15;
+    double expected_subgroup_size = 15;
+    int groupsize_tolerance = 2;
 
     // 记录进入 STAY 状态时的 group size
     double initial_group_size;
 
     rclcpp::Duration wait_time = rclcpp::Duration::from_seconds(0.0);
     rclcpp::Time stay_start_time, fission_start_time;
+    rclcpp::Time boot_time = this->get_clock()->now();
 
-    double Waiting_time_scale_factor = 20;
+    double Waiting_time_scale_factor = 5;
 
-    int history_time = 5;
+    int history_time = 100;
 
     std::vector<double> history_group_size;
 
