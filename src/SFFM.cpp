@@ -9,32 +9,51 @@
 void fissionFusion::sffm_controler_step()
 {
     // boot time
-    if ((this->get_clock()->now() - boot_time) < rclcpp::Duration::from_seconds(10.0))
+    if ((this->get_clock()->now() - boot_time) < boot_wait_time)
     {
         fissionFusion::SDRM_random_walk();
         fissionFusion::SDRM_publish_velocity();
         return;
     }
 
-    std::string datafile_name = "groupsize_data.csv";
+    history_group_size.push_back(sffm_detect_group_size(current_namespace));
+    if (history_group_size.size() > history_time)
+    {
+        history_group_size.erase(history_group_size.begin()); // 删除第一个元素
+    }
+
+    std::string datafile_name = "fission_fusion/data/groupsize_data.csv";
     std::ofstream file(datafile_name, std::ios::app);
 
     if (file.is_open())
     {
-        double groupsize = sffm_detect_group_size(); // 计算群体大小
+        auto now = std::chrono::system_clock::now();
+        std::time_t now_time = std::chrono::system_clock::to_time_t(now);
 
-        file << std::string(this->get_namespace()) << "," << groupsize << "\n"; // 写入 CSV 格式数据
-        file.close();
+        // 转换为本地时间
+        std::tm *local_time = std::localtime(&now_time);
+
+        // 格式化时间为 YYMMDDHHMMSS
+        std::ostringstream time_stream;
+        time_stream << std::put_time(local_time, "%y%m%d%H%M%S");
+
+        double mean = std::accumulate(history_group_size.begin(), history_group_size.end(), 0.0) / history_group_size.size();
+        double group_size = std::floor(mean);
+
+        // 写入 CSV 格式数据
+        file << current_namespace << "," << time_stream.str() << "," << group_size << "\n";
+
+        file.close(); // Explicitly close the file
     }
     else
     {
         std::cerr << "无法打开文件 " << datafile_name << std::endl;
     }
 
-    history_group_size.push_back(sffm_detect_group_size());
-    if (history_group_size.size() > history_time)
+    if (this->get_clock()->now() - Maintain_state_start_time < Maintain_state_time)
     {
-        history_group_size.erase(history_group_size.begin()); // 删除第一个元素
+        // std::cout << "Maintain State" << std::endl;
+        return;
     }
 
     current_state = update_state(current_state);
@@ -43,7 +62,7 @@ void fissionFusion::sffm_controler_step()
     {
     case RANDOM_WALK:
         // random_walk
-        std::cout << "RANDOM_WALK" << std::endl;
+        // std::cout << "RANDOM_WALK" << std::endl;
         SDRM_social_target.header.frame_id.clear();
         fissionFusion::SDRM_random_walk();
         fissionFusion::SDRM_publish_velocity();
@@ -60,8 +79,6 @@ void fissionFusion::sffm_controler_step()
         // std::cout << "FISSION" << std::endl;
         SDRM_social_target.header.frame_id.clear();
         fissionFusion::SDRM_random_walk();
-        // SDRM_linear_velocity = SDRM_linear_velocity / 2;
-        // SDRM_angular_velocity = SDRM_angular_velocity / 2;
         fissionFusion::SDRM_publish_velocity();
         break;
 
@@ -91,22 +108,24 @@ fissionFusion::robot_state fissionFusion::update_state(robot_state current_robot
         double follow_range = std::min(follow_result.second, max_range);
         geometry_msgs::msg::PoseStamped Pose = sffm_choose_follow_target(follow_posibility, follow_range);
 
-        if (Pose.header.frame_id == "none")
+        if (selected_target == "none") // not found target
+        {
+            return RANDOM_WALK;
+        }
+        else if (selected_target == "non-follower")
         {
             // non-follower
-            initial_group_size = sffm_detect_group_size();
+            initial_group_size = sffm_detect_group_size(current_namespace);
             stay_start_time = this->get_clock()->now();
             wait_time = rclcpp::Duration::from_seconds(static_cast<double>(Waiting_time_scale_factor * initial_group_size));
 
             std::cout << "from RANDOM_WALK to STAY" << std::endl;
             return STAY;
-            break;
         }
         else
         {
             // std::cout << "from RANDOM_WALK to FUSION" << std::endl;
             return FUSION;
-            break;
         }
 
         break;
@@ -114,28 +133,35 @@ fissionFusion::robot_state fissionFusion::update_state(robot_state current_robot
 
     case FUSION:
     {
-        double delta_distance = calculate_distance(current_pose, poses_[selected_topic]);
-        double target_movement = calculate_distance(last_target_pose, poses_[selected_topic]);
+        double delta_distance = calculate_distance(current_pose, poses_[selected_target]);
+        double target_movement = calculate_distance(last_target_pose, poses_[selected_target]);
 
-        if (delta_distance < 0.5)
+        if (delta_distance < 0.8)
         {
             // follow a follower
-            initial_group_size = sffm_detect_group_size();
+            initial_group_size = sffm_detect_group_size(current_namespace);
             stay_start_time = this->get_clock()->now();
             wait_time = rclcpp::Duration::from_seconds(static_cast<double>(Waiting_time_scale_factor * initial_group_size));
             // std::cout << "from FUSION to STAY" << std::endl;
             return STAY;
-            break;
         }
         else
         {
-            last_target_pose = poses_[selected_topic];
-            return FUSION;
-            break;
+            last_target_pose = poses_[selected_target];
+            double target_group_size = sffm_detect_group_size(selected_target);
+
+            // Continuous Communication Strategy
+            if (target_group_size > (expected_subgroup_size + groupsize_tolerance - 1))
+            {
+                return RANDOM_WALK;
+            }
+            else
+            {
+                return FUSION;
+            }
+
+            // return FUSION; // no: Continuous Communication Strategy
         }
-        // TODO // NEED communication here
-        //  if target group size still larger than expected group size
-        //  return fission
 
         break;
     }
@@ -143,24 +169,20 @@ fissionFusion::robot_state fissionFusion::update_state(robot_state current_robot
     case FISSION:
     {
         double mean = std::accumulate(history_group_size.begin(), history_group_size.end(), 0.0) / history_group_size.size();
-        double actual_group_size = mean;
-        if (std::abs(actual_group_size - expected_subgroup_size) < groupsize_tolerance)
+        double actual_group_size = std::floor(mean);
+        if (std::abs(actual_group_size - expected_subgroup_size) <= groupsize_tolerance)
         {
             return STAY;
-            break;
         }
 
-        if (calculate_distance(sffm_fission_pose, current_pose) > max_range / 1.5 ||
-            (this->get_clock()->now() - fission_start_time).seconds() > 30)
+        if (calculate_distance(sffm_fission_pose, current_pose) > max_range)
         {
             std::cout << "from FISSION to RANDOM:" << calculate_distance(sffm_fission_pose, current_pose) << std::endl;
             return RANDOM_WALK;
-            break;
         }
         else
         {
             return FISSION;
-            break;
         }
         break;
     }
@@ -168,35 +190,43 @@ fissionFusion::robot_state fissionFusion::update_state(robot_state current_robot
     case STAY:
     {
         double mean = std::accumulate(history_group_size.begin(), history_group_size.end(), 0.0) / history_group_size.size();
-        double actual_group_size = mean; // 一段时间的平均值代替当前大小，更稳定
+        double actual_group_size = std::floor(mean); // 一段时间的平均值代替当前大小，更稳定
         if (actual_group_size > (expected_subgroup_size + groupsize_tolerance))
         { // group larger than expected size
             std::pair<double, double> follow_result = sffm_estimate_posibility_range(expected_subgroup_size,
                                                                                      arena_area,
                                                                                      actual_group_size);
-            double follow_posibility = 1 - (actual_group_size - expected_subgroup_size) / actual_group_size;
+            double follow_posibility = 1 - ((actual_group_size - expected_subgroup_size) / actual_group_size) / 1.5;
             double follow_range = 2;
             geometry_msgs::msg::PoseStamped Pose = sffm_choose_follow_target(follow_posibility, follow_range);
 
-            if (Pose.header.frame_id == "none")
+            if (selected_target == "non-follower")
             {
                 // fission from group
                 std::cout << "from STAY to FISSION, group larger than expected size" << std::endl;
                 fission_start_time = this->get_clock()->now();
                 sffm_fission_pose = current_pose;
-
                 return FISSION;
-                break;
             }
             else
             {
-                selected_topic.clear();
-                sleep(30);
-                double follow_posibility = 1;
-                double follow_range = 3;
-                geometry_msgs::msg::PoseStamped Pose = sffm_choose_follow_target(follow_posibility, follow_range);
-                return FUSION;
-                break;
+                selected_target.clear();
+                Maintain_state_start_time = this->get_clock()->now(); // matain state
+
+                // double follow_posibility = 1;
+                // double follow_range = 2;
+                // geometry_msgs::msg::PoseStamped Pose = sffm_choose_follow_target(follow_posibility, follow_range);
+                // if (selected_target == "none")
+                // {
+                //     sffm_fission_pose = current_pose;
+                //     return STAY;
+                // }
+                // else
+                // {
+                //     std::cout << "from STAY to FUSION, keep stay in group even larger than expected size" << std::endl;
+                //     return FUSION; // keep group Compact
+                // }
+                return STAY;
             }
         }
         else if (actual_group_size < (expected_subgroup_size - groupsize_tolerance))
@@ -204,8 +234,8 @@ fissionFusion::robot_state fissionFusion::update_state(robot_state current_robot
             // 如果 group size 变化了，更新等待时间
             if (actual_group_size != initial_group_size)
             {
-                wait_time = rclcpp::Duration::from_seconds(static_cast<double>(Waiting_time_scale_factor * actual_group_size));
                 initial_group_size = actual_group_size; // 更新 group size 记录
+                wait_time = rclcpp::Duration::from_seconds(static_cast<double>(Waiting_time_scale_factor * initial_group_size));
                 stay_start_time = this->get_clock()->now();
             }
 
@@ -217,24 +247,21 @@ fissionFusion::robot_state fissionFusion::update_state(robot_state current_robot
                 fission_start_time = this->get_clock()->now();
                 sffm_fission_pose = current_pose;
                 return FISSION;
-                break;
             }
             else
             {
                 return STAY;
-                break;
             }
         }
         else
         {
             return STAY;
-            break;
         }
 
         break;
     }
     default:
-        return RANDOM_WALK;
+        return STAY;
     }
 }
 
@@ -262,34 +289,23 @@ std::vector<std::pair<std::string, geometry_msgs::msg::PoseStamped>> fissionFusi
     // 取消达到期望组大小的吸引力
     std::vector<std::pair<std::string, geometry_msgs::msg::PoseStamped>> filtered = candidates;
     std::vector<bool> removed(filtered.size(), false); // 标记是否移除
-    double threshold = group_size_distance_threshold;  // 距离阈值
 
     for (size_t i = 0; i < filtered.size(); ++i)
     {
         if (removed[i])
             continue; // 如果已经标记为删除，则跳过
 
-        std::vector<size_t> close_indices;
-        close_indices.push_back(i);
+        // 获取当前点的 ID
+        std::string target_id = filtered[i].first;
 
-        // 查找与当前点接近的点
-        for (size_t j = i + 1; j < filtered.size(); ++j)
-        {
-            if (!removed[j] && calculate_distance(filtered[i].second, filtered[j].second) < threshold)
-            {
-                close_indices.push_back(j);
-            }
-        }
+        // 检测当前点所在的 groupsize
+        double group_size = sffm_detect_group_size(target_id);
 
-        // 如果找到的点数量超过期望组大小，则全部移除
-        if (close_indices.size() > expected_subgroup_size)
+        // 如果 groupsize 大于期望组大小，则标记为移除
+        if (group_size > (expected_subgroup_size + groupsize_tolerance - 2))
         {
-            for (size_t k = 0; k < close_indices.size(); ++k)
-            {
-                removed[close_indices[k]] = true; // 标记为移除
-            }
+            removed[i] = true; // 标记为移除
         }
-        // 否则，保留所有点（不需要额外操作）
     }
 
     // 生成最终的候选点列表
@@ -321,13 +337,11 @@ fissionFusion::sffm_choose_follow_target(double posibility, double follow_radius
 
     if (random_value > posibility)
     {
-        selected_topic.clear(); // no target
-        return target_pose;     // 不跟随，返回默认空目标
+        selected_target = "non-follower"; // no target
+        return target_pose;               // 不跟随，返回默认空目标
     }
 
-    std::string current_namespace = this->get_namespace();
-
-    // 2. 查找半径 follow_radius 内的目标
+    // 1. 查找半径 follow_radius 内的目标
     std::vector<std::pair<std::string, geometry_msgs::msg::PoseStamped>> candidates;
     for (const auto &[id, pose] : poses_)
     {
@@ -353,40 +367,31 @@ fissionFusion::sffm_choose_follow_target(double posibility, double follow_radius
         }
     }
 
-    // 2.5 decrease the attrctive level of group
+    // 2 Minimal Communication Strategy
     candidates = attrctive_of_group(candidates);
 
     // 3. 从候选者中随机选择一个目标
     if (!candidates.empty())
     {
         int index = std::rand() % candidates.size(); // 随机索引
-        selected_topic = candidates[index].first;
+        selected_target = candidates[index].first;
         return candidates[index].second; // 返回目标的 id 和 Pose
     }
     else
     {
         geometry_msgs::msg::PoseStamped no_target;
-        selected_topic.clear();
+        selected_target = "none";
         return no_target; // 没有可选目标，返回默认空目标和空 id
     }
 }
 
-double fissionFusion::sffm_detect_group_size()
+double fissionFusion::sffm_detect_group_size(std::string target_namespace)
 {
     std::set<std::string> visited; // 记录访问过的粒子
     std::queue<std::string> q;     // 用于 BFS 遍历群体
     double group_size = 0;         // 计数群体大小
 
-    // 1. 找到 current_pose 在 poses_ 中的 key
-    std::string current_key = "";
-    for (const auto &[id, pose] : poses_)
-    {
-        if (calculate_distance(current_pose, pose) < 1e-6)
-        { // 近似判断是否为自己
-            current_key = id;
-            break;
-        }
-    }
+    std::string current_key = target_namespace;
 
     // 2. BFS 扩展群体
     q.push(current_key);

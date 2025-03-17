@@ -7,6 +7,10 @@
 #include <random>
 #include <fstream>
 #include <iostream>
+#include <iomanip>
+#include <sstream>
+#include <chrono>
+#include <ctime>
 #include <yaml-cpp/yaml.h>
 #include "std_msgs/msg/string.hpp"
 #include "std_msgs/msg/float64_multi_array.hpp"
@@ -172,7 +176,7 @@ private:
     double SDRM_angular_velocity;
     double lambda_random_ = 0.95; // 0.95
     double lambda_social_ = 22;
-    std::string selected_topic;
+    std::string selected_target;
     geometry_msgs::msg::PoseStamped SDRM_social_target;
     // socail influence level
     std::map<std::string, double> value_social_influence;
@@ -234,6 +238,8 @@ private:
      * sffm controller
      **************************************************************************/
 
+    std::string current_namespace = this->get_namespace();
+
     enum robot_state
     {
         FUSION,
@@ -247,7 +253,7 @@ private:
 
     void sffm_controler_step();
 
-    double sffm_detect_group_size();
+    double sffm_detect_group_size(std::string target_namespace);
 
     // 计算二项分布的概率质量函数 (PMF)
     double binomial_pmf(int n, int m, double p);
@@ -282,28 +288,41 @@ private:
     geometry_msgs::msg::PoseStamped last_target_pose;
     bool has_chosen_target = false;
     double group_size;
-    double group_size_distance_threshold = 1;
+    double group_size_distance_threshold = 1.5;
 
     double n_groupsize = 42;
     double arena_range = 40;
     double arena_area = arena_range * arena_range;
     double follow_posibility = 1;
     double follow_range = 5;
-    double max_range = 15;
-    double expected_subgroup_size = 15;
-    int groupsize_tolerance = 2;
+    double max_range = 20;
+    double expected_subgroup_size = 14;
+    double groupsize_tolerance = 1; // n_groupsize * 0.05;
 
     // 记录进入 STAY 状态时的 group size
     double initial_group_size;
 
     rclcpp::Duration wait_time = rclcpp::Duration::from_seconds(0.0);
     rclcpp::Time stay_start_time, fission_start_time;
+    // boot time
     rclcpp::Time boot_time = this->get_clock()->now();
+    double random_time()
+    {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_real_distribution<double> dist(10.0, 15.0);
+        double random_seconds = dist(gen);
+        return random_seconds;
+    }
+    rclcpp::Duration boot_wait_time = rclcpp::Duration::from_seconds(random_time());
 
-    double Waiting_time_scale_factor = 5;
+    // 维持stay状态
+    rclcpp::Duration Maintain_state_time = rclcpp::Duration::from_seconds(10.0);
+    rclcpp::Time Maintain_state_start_time = this->get_clock()->now() - Maintain_state_time;
 
-    int history_time = 100;
+    double Waiting_time_scale_factor = expected_subgroup_size / 3;
 
+    int history_time = 200;
     std::vector<double> history_group_size;
 
     /*************************************************************************

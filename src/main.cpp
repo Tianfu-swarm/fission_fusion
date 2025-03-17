@@ -168,20 +168,23 @@ void fissionFusion::update_subscriptions()
         if (topic_name.find("/pose") != std::string::npos &&
             subscriptions_.find(topic_name) == subscriptions_.end())
         {
+            // 提取机器人 ID 作为 key，例如 /bot12/pose -> /bot12
+            std::string robot_id = topic_name.substr(0, topic_name.rfind("/pose"));
+
             // 动态创建订阅器
             auto sub = this->create_subscription<geometry_msgs::msg::PoseStamped>(
                 topic_name,
                 10,
-                [this, topic_name](geometry_msgs::msg::PoseStamped::SharedPtr msg)
+                [this, robot_id](geometry_msgs::msg::PoseStamped::SharedPtr msg)
                 {
-                    all_pose_callback(topic_name, msg);
+                    all_pose_callback(robot_id, msg); // 传入 robot_id
                 });
 
             // 保存到订阅列表中，防止重复订阅
             subscriptions_[topic_name] = sub;
 
-            // 初始化对应的 pose 数据
-            poses_[topic_name] = geometry_msgs::msg::PoseStamped();
+            // 初始化对应的 pose 数据，使用 robot_id 作为 key
+            poses_[robot_id] = geometry_msgs::msg::PoseStamped();
         }
     }
 }

@@ -4,7 +4,7 @@ void fissionFusion::SDRM_rab_actuator()
 {
     std::string number_string;
     // 遍历字符串并提取数字字符
-    for (char c : selected_topic)
+    for (char c : selected_target)
     {
         if (isdigit(c))
         {
@@ -89,7 +89,7 @@ void fissionFusion::SDRM_update_Social_Status()
 
 void fissionFusion::SDRM_random_walk()
 {
-    // selected_topic.clear();
+    // selected_target.clear();
 
     double mean_linear_velocity = 4;
     double stddev_linear_velocity = 4;
@@ -108,7 +108,7 @@ void fissionFusion::SDRM_random_walk()
 
 void fissionFusion::SDRM_choose_indival_follow()
 {
-    if (!selected_topic.empty())
+    if (!selected_target.empty())
     {
         return;
     }
@@ -153,7 +153,7 @@ void fissionFusion::SDRM_choose_indival_follow()
         // 如果该话题的命名空间与当前节点的命名空间不同，选择该话题
         if (topic_namespace != current_namespace)
         {
-            selected_topic = topic_name;
+            selected_target = topic_name;
             selected = true;
         }
 
@@ -163,7 +163,7 @@ void fissionFusion::SDRM_choose_indival_follow()
     if (selected)
     {
         // 输出选中的话题
-        RCLCPP_INFO(this->get_logger(), "Selected topic: %s", selected_topic.c_str());
+        RCLCPP_INFO(this->get_logger(), "Selected topic: %s", selected_target.c_str());
     }
     else
     {
@@ -173,7 +173,7 @@ void fissionFusion::SDRM_choose_indival_follow()
 
 void fissionFusion::SDRM_choose_indival_from_neighbour(double neighbour_distance_threshold)
 {
-    if (!selected_topic.empty())
+    if (!selected_target.empty())
     {
         return;
     }
@@ -258,7 +258,7 @@ void fissionFusion::SDRM_choose_indival_from_neighbour(double neighbour_distance
     std::discrete_distribution<> dis(weights.begin(), weights.end());
 
     int selected_index = dis(gen);
-    selected_topic = eligible_topics_social_[selected_index].first;
+    selected_target = eligible_topics_social_[selected_index].first;
 
     // 计算所有权重的总和
     double total_weight = 0.0;
@@ -277,14 +277,14 @@ void fissionFusion::SDRM_choose_indival_from_neighbour(double neighbour_distance
     }
 
     // 输出选中的话题
-    std::cout << "Selected neighbour topic: " << selected_topic
+    std::cout << "Selected neighbour topic: " << selected_target
               << ", Percentage: " << std::fixed << std::setprecision(5) << selected_percentage << "%"
               << std::endl;
 }
 
 void fissionFusion::SDRM_social_influence()
 {
-    if (selected_topic.empty())
+    if (selected_target.empty())
     {
         // fissionFusion::SDRM_choose_indival_follow();
         // fissionFusion::SDRM_choose_indival_from_neighbour(neighbour_range_size);
@@ -292,7 +292,7 @@ void fissionFusion::SDRM_social_influence()
     }
 
     SDRM_social_target.header.frame_id = "map";
-    SDRM_social_target = poses_[selected_topic];
+    SDRM_social_target = poses_[selected_target];
 
     double dx = SDRM_social_target.pose.position.x - current_pose.pose.position.x;
     double dy = SDRM_social_target.pose.position.y - current_pose.pose.position.y;
@@ -394,7 +394,7 @@ void fissionFusion::SDRM_poisson_process()
     if (now >= next_trigger_time_random_)
     {
         current_decision_ = "random_walk";
-        selected_topic.clear();
+        selected_target.clear();
         next_trigger_time_random_ = now + rclcpp::Duration::from_seconds(generate_exponential(lambda_random_));
     }
 

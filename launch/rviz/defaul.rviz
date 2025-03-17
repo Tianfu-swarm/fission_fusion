@@ -898,7 +898,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -911,7 +911,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -924,7 +924,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -937,7 +937,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -950,7 +950,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -963,7 +963,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -976,7 +976,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -989,7 +989,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1002,7 +1002,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1015,7 +1015,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1028,7 +1028,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1041,7 +1041,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1054,7 +1054,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1067,7 +1067,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1080,7 +1080,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1093,7 +1093,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1106,7 +1106,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1119,7 +1119,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1132,7 +1132,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1145,7 +1145,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1158,7 +1158,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1171,7 +1171,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1184,7 +1184,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1197,7 +1197,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1210,7 +1210,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1223,7 +1223,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1236,7 +1236,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1249,7 +1249,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1262,7 +1262,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1275,7 +1275,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1288,7 +1288,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1301,7 +1301,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1314,7 +1314,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1327,7 +1327,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1340,7 +1340,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1353,7 +1353,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1366,7 +1366,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1379,7 +1379,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1392,7 +1392,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1405,7 +1405,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1418,7 +1418,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -1431,7 +1431,7 @@ Visualization Manager:
           Enabled: true
           Name: Marker
           Namespaces:
-            {}
+            arrows: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -3884,5 +3884,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1466
-  X: 140
-  Y: 54
+  X: 3
+  Y: 0
