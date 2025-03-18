@@ -22,7 +22,9 @@ void fissionFusion::sffm_controler_step()
         history_group_size.erase(history_group_size.begin()); // 删除第一个元素
     }
 
-    std::string datafile_name = "fission_fusion/data/groupsize_data.csv";
+    std::string datafile_name = "fission_fusion/data/groupsize_data_" +
+                                (current_namespace.front() == '/' ? current_namespace.substr(1) : current_namespace) +
+                                ".csv";
     std::ofstream file(datafile_name, std::ios::app);
 
     if (file.is_open())
@@ -79,6 +81,8 @@ void fissionFusion::sffm_controler_step()
         // std::cout << "FISSION" << std::endl;
         SDRM_social_target.header.frame_id.clear();
         fissionFusion::SDRM_random_walk();
+        SDRM_linear_velocity = SDRM_linear_velocity * 2;
+        SDRM_angular_velocity = SDRM_angular_velocity * 2;
         fissionFusion::SDRM_publish_velocity();
         break;
 
