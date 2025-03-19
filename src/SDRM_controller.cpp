@@ -366,7 +366,6 @@ void fissionFusion::SDRM_social_influence()
 
 void fissionFusion::SDRM_publish_velocity()
 {
-
     geometry_msgs::msg::Twist twist_msg;
     twist_msg.linear.x = SDRM_linear_velocity;
     twist_msg.linear.y = 0.0;

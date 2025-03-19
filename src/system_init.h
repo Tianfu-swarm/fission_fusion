@@ -11,8 +11,10 @@
 #include <sstream>
 #include <chrono>
 #include <ctime>
+#include <filesystem>
 #include <yaml-cpp/yaml.h>
 #include "std_msgs/msg/string.hpp"
+#include <ament_index_cpp/get_package_share_directory.hpp>
 #include "std_msgs/msg/float64_multi_array.hpp"
 #include <angles/angles.h>
 #include "rclcpp/rclcpp.hpp"
@@ -32,7 +34,9 @@ public:
     fissionFusion() : Node("fissionFusion")
     {
         // config
-        fissionFusion::configure("/home/tianfu/fission_fusion_ws/src/fission_fusion/config/config.yaml");
+        std::string package_path = ament_index_cpp::get_package_share_directory("fission_fusion");
+        std::string config_path = package_path + "/config/config.yaml";
+        fissionFusion::configure(config_path);
 
         // subscription
         pose_subscription_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
@@ -240,6 +244,10 @@ private:
 
     std::string current_namespace = this->get_namespace();
 
+    std::string package_path = ament_index_cpp::get_package_share_directory("fission_fusion");
+    std::string results_file_name = "default_name.csv";
+    std::string datafile_name = package_path + "/data/" + results_file_name;
+
     enum robot_state
     {
         FUSION,
@@ -281,11 +289,18 @@ private:
 
     std::vector<std::pair<std::string, geometry_msgs::msg::PoseStamped>> attrctive_of_group(std::vector<std::pair<std::string, geometry_msgs::msg::PoseStamped>> candidates);
 
+    // local ptah planning
+    std::pair<double, double> local_path_planning(std::string robot_namespace);
+
     robot_state update_state(robot_state current_robot_state);
 
     geometry_msgs::msg::PoseStamped sffm_fission_pose;
 
     geometry_msgs::msg::PoseStamped last_target_pose;
+
+    bool isMinCommunication = true;
+    bool isConCommunication = true;
+
     bool has_chosen_target = false;
     double group_size;
     double group_size_distance_threshold = 1.5;
@@ -322,7 +337,7 @@ private:
 
     double Waiting_time_scale_factor = expected_subgroup_size / 3;
 
-    int history_time = 200;
+    int history_time = 50;
     std::vector<double> history_group_size;
 
     /*************************************************************************

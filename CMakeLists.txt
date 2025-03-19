@@ -47,6 +47,13 @@ target_link_libraries(fission_fusion yaml-cpp)
 install(DIRECTORY launch/
   DESTINATION share/${PROJECT_NAME}/launch
 )
+#Install config files
+install(DIRECTORY config/
+  DESTINATION share/${PROJECT_NAME}/config)
+
+install(DIRECTORY data/
+  DESTINATION share/${PROJECT_NAME}/data)
+
 
 configure_file(${CMAKE_SOURCE_DIR}/config/config.yaml ${CMAKE_BINARY_DIR}/config/config.yaml COPYONLY)
 

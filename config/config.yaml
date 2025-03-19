@@ -28,3 +28,9 @@ simulation_time:
   roosting_duration_time: 30.0        # Roosting duration
   foraging_duration_time: 15.0       # Foraging duration
 
+#sffm
+sffm:
+  results_file_name: "groupsize_distribution5.csv" # results save path and name
+  isMinCommunication: false                         #robot stops communicate after select a suitable target
+  isConCommunication: true                        #robot communicates continuously during operation
+
