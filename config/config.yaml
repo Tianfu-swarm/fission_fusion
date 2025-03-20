@@ -31,6 +31,6 @@ simulation_time:
 #sffm
 sffm:
   results_file_name: "groupsize_distribution5.csv" # results save path and name
-  isMinCommunication: false                         #robot stops communicate after select a suitable target
+  isMinCommunication: true                         #robot stops communicate after select a suitable target
   isConCommunication: true                        #robot communicates continuously during operation
 

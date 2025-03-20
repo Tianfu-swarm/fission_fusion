@@ -335,9 +335,9 @@ private:
     rclcpp::Duration Maintain_state_time = rclcpp::Duration::from_seconds(10.0);
     rclcpp::Time Maintain_state_start_time = this->get_clock()->now() - Maintain_state_time;
 
-    double Waiting_time_scale_factor = expected_subgroup_size / 3;
+    double Waiting_time_scale_factor = arena_range / 4; // waiting time factor has relation with range of arena
 
-    int history_time = 50;
+    int history_time = 100;
     std::vector<double> history_group_size;
 
     /*************************************************************************

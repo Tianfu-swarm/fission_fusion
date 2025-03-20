@@ -85,6 +85,7 @@ void fissionFusion::sffm_controler_step()
     {
         // fusion
         fissionFusion::SDRM_social_influence();
+
         if (isAbstacle == false)
         {
             fissionFusion::SDRM_publish_velocity();
@@ -198,13 +199,20 @@ fissionFusion::robot_state fissionFusion::update_state(robot_state current_robot
             // Continuous Communication Strategy
             if (isConCommunication == true)
             {
-                if (target_group_size > (expected_subgroup_size + groupsize_tolerance - 1))
+                if (target_group_size < (expected_subgroup_size + groupsize_tolerance + 1))
                 {
-                    return RANDOM_WALK;
+                    return FUSION;
                 }
                 else
                 {
-                    return FUSION;
+                    if (calculate_distance(current_pose, poses_[selected_target]) > 5)
+                    {
+                        return RANDOM_WALK;
+                    }
+                    else
+                    {
+                        return FISSION;
+                    }
                 }
             }
             else
@@ -338,7 +346,7 @@ std::vector<std::pair<std::string, geometry_msgs::msg::PoseStamped>> fissionFusi
         double group_size = sffm_detect_group_size(target_id);
 
         // 如果 groupsize 大于期望组大小，则标记为移除
-        if (group_size > (expected_subgroup_size + groupsize_tolerance - 2))
+        if (group_size >= (expected_subgroup_size + groupsize_tolerance))
         {
             removed[i] = true; // 标记为移除
         }
