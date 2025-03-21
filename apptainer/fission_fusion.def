@@ -25,10 +25,7 @@ From: osrf/ros:humble-desktop
     mkdir -p /opt/container_env/lib
     mkdir -p /opt/container_env/share
 
-%files
-    /home/tianfu/fission_fusion_ws/src/fission_fusion /tmp/fission_fusion
-
-%post
+%post -c /bin/bash
     set -e  # 遇到错误终止执行
 
      if [ ! -d "/opt/container_env" ]; then
@@ -83,16 +80,15 @@ From: osrf/ros:humble-desktop
 
 
     mkdir -p /opt/container_env/fission_fusion_ws/src/
-    # 使用 rsync 复制 fission_fusion
-    rsync -av --exclude=/bin/X11 --exclude=/etc/mtab \
-        /tmp/fission_fusion/ /opt/container_env/fission_fusion_ws/src/fission_fusion/
 
     # 编译 fission_fusion
-    cd /opt/container_env/fission_fusion_ws
+    cd /opt/container_env/fission_fusion_ws/src
+    git clone https://github.com/Tianfu-swarm/fission_fusion.git
+    cd ..
     source /opt/ros/humble/setup.bash
     colcon build 
 
 %runscript
-    source /opt/ros/humble/setup.bash
-    source /opt/container_env/fission_fusion_ws/install/setup.bash
+    . /opt/ros/humble/setup.bash
+    . /opt/container_env/fission_fusion_ws/install/setup.bash
     exec "$@"
