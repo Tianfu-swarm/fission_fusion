@@ -124,11 +124,6 @@ void fissionFusion::configure(const std::string &yaml_file)
         roosting_duration_time = yaml["simulation_time"]["roosting_duration_time"].as<double>();
         foraging_duration_time = yaml["simulation_time"]["foraging_duration_time"].as<double>();
 
-        // sffm controller
-        results_file_name = yaml["sffm"]["results_file_name"].as<std::string>();
-        isMinCommunication = yaml["sffm"]["isMinCommunication"].as<bool>();
-        isConCommunication = yaml["sffm"]["isConCommunication"].as<bool>();
-
         // // Print parameters to verify loading
         // std::cout << "Lambda Random: " << lambda_random_ << std::endl;
         // std::cout << "Lambda Social: " << lambda_social_ << std::endl;

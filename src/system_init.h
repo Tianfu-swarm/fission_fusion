@@ -59,8 +59,15 @@ public:
         target_pose_publisher_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("target_pose", 10);
         follow_relation_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("follow_relation", 10);
 
-        this->declare_parameter<std::string>("controller_type", "SDRM");
+        this->declare_parameter<std::string>("results_file_path", "default_output.csv");
+        this->declare_parameter<bool>("isMinCommunication", true);
+        this->declare_parameter<bool>("isConCommunication", true);
 
+        this->results_file_path = this->get_parameter("results_file_path").as_string();
+        this->isMinCommunication = this->get_parameter("isMinCommunication").as_bool();
+        this->isConCommunication = this->get_parameter("isConCommunication").as_bool();
+
+        this->declare_parameter<std::string>("controller_type", "SDRM");
         std::string controller_type = this->get_parameter("controller_type").as_string();
 
         if (controller_type == "SDRM")
@@ -244,9 +251,9 @@ private:
 
     std::string current_namespace = this->get_namespace();
 
-    std::string package_path = ament_index_cpp::get_package_share_directory("fission_fusion");
-    std::string results_file_name = "default_name.csv";
-    std::string datafile_name = package_path + "/data/" + results_file_name;
+    std::string results_file_path;
+    bool isMinCommunication;
+    bool isConCommunication;
 
     enum robot_state
     {
@@ -297,9 +304,6 @@ private:
     geometry_msgs::msg::PoseStamped sffm_fission_pose;
 
     geometry_msgs::msg::PoseStamped last_target_pose;
-
-    bool isMinCommunication = true;
-    bool isConCommunication = true;
 
     bool has_chosen_target = false;
     double group_size;

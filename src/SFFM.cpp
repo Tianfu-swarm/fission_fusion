@@ -13,7 +13,6 @@ void fissionFusion::sffm_controler_step()
     {
         fissionFusion::SDRM_random_walk();
         fissionFusion::SDRM_publish_velocity();
-        datafile_name = package_path + "/data/" + results_file_name;
         return;
     }
 
@@ -23,7 +22,7 @@ void fissionFusion::sffm_controler_step()
         history_group_size.erase(history_group_size.begin()); // 删除第一个元素
     }
 
-    std::ofstream file(datafile_name, std::ios::app);
+    std::ofstream file(results_file_path, std::ios::app);
 
     if (file.is_open())
     {
@@ -41,7 +40,7 @@ void fissionFusion::sffm_controler_step()
     }
     else
     {
-        std::cerr << "无法打开文件 " << datafile_name << std::endl;
+        std::cerr << "无法打开文件 " << results_file_path << std::endl;
     }
 
     if (this->get_clock()->now() - Maintain_state_start_time < Maintain_state_time)
