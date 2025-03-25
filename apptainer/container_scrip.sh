@@ -33,7 +33,7 @@ export LD_LIBRARY_PATH=/usr/local/lib/argos3:/opt/ros/humble/lib:/opt/container_
 export ARGOS_PLUGIN_PATH=/usr/local/lib/argos3:/opt/container_env/fission_fusion_ws/install/argos3_ros_bridge/lib
 
 # Disable Fast DDS shared memory transport to avoid /dev/shm permission issue
-export RMW_FASTRTPS_USE_SHM=OFF
+# export RMW_FASTRTPS_USE_SHM=OFF
 
 # 运行ARGoS3
 echo "Starting ARGoS3 "
@@ -52,11 +52,13 @@ ros2 launch fission_fusion run.launch.py use_rviz:=false results_file_path:="$RE
 ROS2_PID=$!
 
 # 等待初始化
-sleep 3
+sleep 10
 
 # 主运行周期 (10分钟)
 echo "Running simulation for 600 seconds"
 sleep 600
+
+echo "test,1,2,3" >> "$RESULTS_FILE" 
 
 # 清理
 echo "Stopping processes"

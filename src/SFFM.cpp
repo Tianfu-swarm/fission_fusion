@@ -55,7 +55,6 @@ void fissionFusion::sffm_controler_step()
     case RANDOM_WALK:
     {
         // random_walk
-        // std::cout << "RANDOM_WALK" << std::endl;
         SDRM_social_target.header.frame_id.clear();
 
         fissionFusion::SDRM_random_walk();
@@ -94,7 +93,6 @@ void fissionFusion::sffm_controler_step()
     case FISSION:
     {
         // fission
-        // std::cout << "FISSION" << std::endl;
         SDRM_social_target.header.frame_id.clear();
         fissionFusion::SDRM_random_walk();
         SDRM_linear_velocity = SDRM_linear_velocity * 2;
@@ -133,7 +131,7 @@ void fissionFusion::sffm_controler_step()
     }
     default:
     {
-        std::cout << "BUG, no state" << std::endl;
+        RCLCPP_ERROR(this->get_logger(), "No state, default RANDOM_WALK");
         current_state = RANDOM_WALK;
     }
     }
@@ -163,12 +161,12 @@ fissionFusion::robot_state fissionFusion::update_state(robot_state current_robot
             stay_start_time = this->get_clock()->now();
             wait_time = rclcpp::Duration::from_seconds(static_cast<double>(Waiting_time_scale_factor * initial_group_size));
 
-            std::cout << "from RANDOM_WALK to STAY" << std::endl;
+            RCLCPP_INFO(this->get_logger(), "from RANDOM_WALK to STAY");
             return STAY;
         }
         else
         {
-            // std::cout << "from RANDOM_WALK to FUSION" << std::endl;
+            // RCLCPP_INFO(this->get_logger(), "from RANDOM_WALK to FUSION");
             return FUSION;
         }
 
@@ -186,7 +184,6 @@ fissionFusion::robot_state fissionFusion::update_state(robot_state current_robot
             initial_group_size = sffm_detect_group_size(current_namespace);
             stay_start_time = this->get_clock()->now();
             wait_time = rclcpp::Duration::from_seconds(static_cast<double>(Waiting_time_scale_factor * initial_group_size));
-            // std::cout << "from FUSION to STAY" << std::endl;
             return STAY;
         }
         else
@@ -233,7 +230,8 @@ fissionFusion::robot_state fissionFusion::update_state(robot_state current_robot
 
         if (calculate_distance(sffm_fission_pose, current_pose) > max_range)
         {
-            std::cout << "from FISSION to RANDOM:" << calculate_distance(sffm_fission_pose, current_pose) << std::endl;
+            RCLCPP_INFO(this->get_logger(), "from FISSION to RANDOM: %f",
+                        calculate_distance(sffm_fission_pose, current_pose));
             return RANDOM_WALK;
         }
         else
@@ -259,7 +257,7 @@ fissionFusion::robot_state fissionFusion::update_state(robot_state current_robot
             if (selected_target == "non-follower")
             {
                 // fission from group
-                std::cout << "from STAY to FISSION, group larger than expected size" << std::endl;
+                RCLCPP_INFO(this->get_logger(), "from STAY to FISSION, group larger than expected size");
                 fission_start_time = this->get_clock()->now();
                 sffm_fission_pose = current_pose;
                 return FISSION;
@@ -285,7 +283,8 @@ fissionFusion::robot_state fissionFusion::update_state(robot_state current_robot
             rclcpp::Time time_now = this->get_clock()->now();
             if (time_now - stay_start_time > wait_time)
             {
-                std::cout << "from STAY to FISSION, Waiting time Run out." << std::endl;
+                RCLCPP_INFO(this->get_logger(), "from STAY to FISSION, Waiting time Run out.");
+
                 fission_start_time = this->get_clock()->now();
                 sffm_fission_pose = current_pose;
                 return FISSION;
