@@ -22,31 +22,30 @@ void fissionFusion::sffm_controler_step()
         history_group_size.erase(history_group_size.begin()); // 删除第一个元素
     }
 
-    std::ofstream file(results_file_path, std::ios::app);
+    double mean = std::accumulate(history_group_size.begin(), history_group_size.end(), 0.0) / history_group_size.size();
+    double group_size = std::floor(mean);
 
-    if (file.is_open())
+    write_buffer << current_namespace << ","
+                 << std::fixed << this->get_clock()->now().seconds()
+                 << "," << sffm_detect_group_size(current_namespace) << "\n";
+
+    // 每 5 秒写入一次文件
+    rclcpp::Time now = this->get_clock()->now();
+    if ((now - last_flush_time).seconds() > 5.0)
     {
-
-        double mean = std::accumulate(history_group_size.begin(), history_group_size.end(), 0.0) / history_group_size.size();
-        double group_size = std::floor(mean);
-
-        // 写入 CSV 格式数据
-
-        file << current_namespace << ","
-             << std::fixed << this->get_clock()->now().seconds()
-             << "," << sffm_detect_group_size(current_namespace) << "\n";
-
-        file.close(); // Explicitly close the file
-    }
-    else
-    {
-        std::cerr << "无法打开文件 " << results_file_path << std::endl;
-    }
-
-    if (this->get_clock()->now() - Maintain_state_start_time < Maintain_state_time)
-    {
-        // std::cout << "Maintain State" << std::endl;
-        return;
+        std::ofstream file(results_file_path, std::ios::app);
+        if (file.is_open())
+        {
+            file << write_buffer.str();
+            file.close(); // 自动 flush + 释放资源
+            write_buffer.str("");
+            write_buffer.clear();
+            last_flush_time = now;
+        }
+        else
+        {
+            RCLCPP_ERROR(this->get_logger(), "无法打开文件: %s", results_file_path.c_str());
+        }
     }
 
     current_state = update_state(current_state);

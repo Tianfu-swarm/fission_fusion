@@ -55,6 +55,7 @@ From: osrf/ros:humble-desktop
         libfreeimage-dev \
         libfreeimageplus-dev \
         qtbase5-dev \
+        libgsl-dev \
         freeglut3-dev \
         libxi-dev \
         libxmu-dev \
@@ -84,6 +85,7 @@ From: osrf/ros:humble-desktop
     # 编译 fission_fusion
     cd /opt/container_env/fission_fusion_ws/src
     git clone https://github.com/Tianfu-swarm/fission_fusion.git
+    git clone https://github.com/Tianfu-swarm/argos3_ros_bridge.git
     cd ..
     source /opt/ros/humble/setup.bash
     colcon build 

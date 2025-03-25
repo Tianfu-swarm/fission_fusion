@@ -254,6 +254,9 @@ private:
     std::string results_file_path;
     bool isMinCommunication;
     bool isConCommunication;
+    // record results
+    std::stringstream write_buffer;
+    rclcpp::Time last_flush_time = this->get_clock()->now();
 
     enum robot_state
     {
@@ -316,7 +319,7 @@ private:
     double follow_range = 5;
     double max_range = 20;
     double expected_subgroup_size = 14;
-    double groupsize_tolerance = 1; // n_groupsize * 0.05;
+    double groupsize_tolerance = 0; // n_groupsize * 0.05;
 
     // 记录进入 STAY 状态时的 group size
     double initial_group_size;

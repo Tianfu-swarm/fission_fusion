@@ -3,6 +3,7 @@ from launch import LaunchDescription
 from launch.actions import SetEnvironmentVariable, DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from launch.conditions import IfCondition 
 
 def generate_launch_description():
     # 设置环境变量
@@ -13,6 +14,7 @@ def generate_launch_description():
         DeclareLaunchArgument('results_file_path', default_value='/home/tianfu/fission_fusion_ws/src/fission_fusion/data/output.csv'),
         DeclareLaunchArgument('isMinCommunication', default_value='true'),
         DeclareLaunchArgument('isConCommunication', default_value='true'),
+        DeclareLaunchArgument('use_rviz', default_value='true'),
     ]
 
     # 创建机器人节点
@@ -41,6 +43,7 @@ def generate_launch_description():
         name='rviz',
         output='screen',
         arguments=['-d', "/home/tianfu/fission_fusion_ws/src/fission_fusion/launch/rviz/defaul.rviz"],
+        condition=IfCondition(LaunchConfiguration('use_rviz')),
     )
     nodes.append(rviz_node)
 
