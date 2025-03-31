@@ -25,4 +25,4 @@ ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -r cmd_vel:=bot0
 
 ## Demo
 
-![Demo GIF](picture/Fusion-Fission with Continuous Communication.gif)
+![Demo GIF](picture/Fusion-Fission%20with%20Continuous%20Communication.gif)
