@@ -9,6 +9,15 @@ fi
 
 RESULTS_FILE="$1"
 
+# ==== 设置 ROS_DOMAIN_ID（从外部传入）====
+if [ -z "$ROS_DOMAIN_ID" ]; then
+    echo "[ERROR] ROS_DOMAIN_ID not provided from host. Aborting!"
+    exit 1
+else
+    echo "[INFO] Using ROS_DOMAIN_ID=$ROS_DOMAIN_ID"
+    export ROS_DOMAIN_ID
+fi
+
 source /opt/container_env/fission_fusion_ws/install/setup.bash
 
 # ROS 2 守护进程管理
@@ -57,8 +66,6 @@ sleep 10
 # 主运行周期 (10分钟)
 echo "Running simulation for 600 seconds"
 sleep 600
-
-echo "test,1,2,3" >> "$RESULTS_FILE" 
 
 # 清理
 echo "Stopping processes"

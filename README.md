@@ -23,7 +23,6 @@ ros2 launch fission_fusion run.launch.py
 ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -r cmd_vel:=bot0/cmd_vel
 ```
 
+## Demo
 
-## Demo of SDRM
-
-![Demo GIF](picture/demo_SDRM.gif)
+![Demo GIF](picture/Fusion-Fission with Continuous Communication.gif)
