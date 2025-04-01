@@ -15,6 +15,9 @@ def generate_launch_description():
         DeclareLaunchArgument('isMinCommunication', default_value='true'),
         DeclareLaunchArgument('isConCommunication', default_value='true'),
         DeclareLaunchArgument('use_rviz', default_value='true'),
+        DeclareLaunchArgument('expected_subgroup_size', default_value='14'),
+        DeclareLaunchArgument('subgroup_size_sigma', default_value='1'),
+        DeclareLaunchArgument('groupsize_tolerance', default_value='0'),
     ]
 
     # 创建机器人节点
@@ -31,6 +34,9 @@ def generate_launch_description():
                     "results_file_path": LaunchConfiguration('results_file_path'),
                     "isMinCommunication": LaunchConfiguration('isMinCommunication'),
                     "isConCommunication": LaunchConfiguration('isConCommunication'),
+                    "expected_subgroup_size":LaunchConfiguration('expected_subgroup_size'),
+                    "subgroup_size_sigma":LaunchConfiguration('subgroup_size_sigma'),
+                    "groupsize_tolerance":LaunchConfiguration('groupsize_tolerance'),
                     "controller_type": "sffm",  #  "SDRM" / "skybat" / "P" /"sffm"
                 }]
             )

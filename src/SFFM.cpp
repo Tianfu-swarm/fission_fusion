@@ -13,6 +13,9 @@ void fissionFusion::sffm_controler_step()
     {
         fissionFusion::SDRM_random_walk();
         fissionFusion::SDRM_publish_velocity();
+        // setup
+        expected_subgroup_size = std::max(2.0, std::round(expected_subgroup_size - normal_distribution()));
+        std::cout << "expected_subgroup_size:" << expected_subgroup_size << std::endl;
         return;
     }
 

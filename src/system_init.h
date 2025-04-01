@@ -62,10 +62,16 @@ public:
         this->declare_parameter<std::string>("results_file_path", "default_output.csv");
         this->declare_parameter<bool>("isMinCommunication", true);
         this->declare_parameter<bool>("isConCommunication", true);
+        this->declare_parameter<double>("expected_subgroup_size", 14);
+        this->declare_parameter<double>("subgroup_size_sigma", 1);
+        this->declare_parameter<double>("groupsize_tolerance", 0);
 
         this->results_file_path = this->get_parameter("results_file_path").as_string();
         this->isMinCommunication = this->get_parameter("isMinCommunication").as_bool();
         this->isConCommunication = this->get_parameter("isConCommunication").as_bool();
+        this->expected_subgroup_size = this->get_parameter("expected_subgroup_size").as_double();
+        this->subgroup_size_sigma = this->get_parameter("subgroup_size_sigma").as_double();
+        this->groupsize_tolerance = this->get_parameter("groupsize_tolerance").as_double();
 
         this->declare_parameter<std::string>("controller_type", "SDRM");
         std::string controller_type = this->get_parameter("controller_type").as_string();
@@ -318,8 +324,17 @@ private:
     double follow_posibility = 1;
     double follow_range = 5;
     double max_range = 20;
-    double expected_subgroup_size = 14;
-    double groupsize_tolerance = 0; // n_groupsize * 0.05;
+
+    double subgroup_size_sigma;
+    double expected_subgroup_size;
+    double normal_distribution()
+    {
+        static std::default_random_engine generator(std::random_device{}());
+        std::normal_distribution<double> distribution(0.0, subgroup_size_sigma);
+        return distribution(generator);
+    }
+
+    double groupsize_tolerance; // n_groupsize * 0.05;
 
     // 记录进入 STAY 状态时的 group size
     double initial_group_size;
