@@ -171,7 +171,7 @@ fissionFusion::robot_state fissionFusion::update_state(robot_state current_robot
             if (firstTimefusion == true)
             {
                 follow_posibility = 1.0;
-                follow_range = 7.5;
+                follow_range = 15;
                 firstTimefusion = false;
             }
         }
