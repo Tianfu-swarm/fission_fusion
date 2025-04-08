@@ -11,6 +11,7 @@
 #include <sstream>
 #include <chrono>
 #include <ctime>
+#include <regex>
 #include <filesystem>
 #include <yaml-cpp/yaml.h>
 #include "std_msgs/msg/string.hpp"
@@ -62,6 +63,7 @@ public:
         this->declare_parameter<std::string>("results_file_path", "default_output.csv");
         this->declare_parameter<bool>("isMinCommunication", true);
         this->declare_parameter<bool>("isConCommunication", true);
+        this->declare_parameter<bool>("isModelworks", true);
         this->declare_parameter<double>("expected_subgroup_size", 14);
         this->declare_parameter<double>("subgroup_size_sigma", 1);
         this->declare_parameter<double>("groupsize_tolerance", 0);
@@ -69,6 +71,7 @@ public:
         this->results_file_path = this->get_parameter("results_file_path").as_string();
         this->isMinCommunication = this->get_parameter("isMinCommunication").as_bool();
         this->isConCommunication = this->get_parameter("isConCommunication").as_bool();
+        this->isModelworks = this->get_parameter("isModelworks").as_bool();
         this->expected_subgroup_size = this->get_parameter("expected_subgroup_size").as_double();
         this->subgroup_size_sigma = this->get_parameter("subgroup_size_sigma").as_double();
         this->groupsize_tolerance = this->get_parameter("groupsize_tolerance").as_double();
@@ -260,6 +263,9 @@ private:
     std::string results_file_path;
     bool isMinCommunication;
     bool isConCommunication;
+    bool isModelworks;
+
+    bool firstTimefusion = true;
     // record results
     std::stringstream write_buffer;
     rclcpp::Time last_flush_time = this->get_clock()->now();
@@ -347,7 +353,7 @@ private:
     {
         std::random_device rd;
         std::mt19937 gen(rd());
-        std::uniform_real_distribution<double> dist(10.0, 15.0);
+        std::uniform_real_distribution<double> dist(10.0, 11.0);
         double random_seconds = dist(gen);
         return random_seconds;
     }

@@ -15,7 +15,21 @@ void fissionFusion::sffm_controler_step()
         fissionFusion::SDRM_publish_velocity();
         // setup
         expected_subgroup_size = std::max(2.0, std::round(expected_subgroup_size - normal_distribution()));
-        std::cout << "expected_subgroup_size:" << expected_subgroup_size << std::endl;
+
+        // diferent group size
+        std::regex re("\\d+");
+        std::smatch match;
+        int number_id;
+        if (std::regex_search(current_namespace, match, re))
+        {
+            number_id = std::stoi(match.str());
+        }
+        // if (number_id > 27)
+        // {
+        //     expected_subgroup_size = 7;
+        // }
+
+        std::cout << number_id << " expected_subgroup_size:" << expected_subgroup_size << std::endl;
         return;
     }
 
@@ -150,7 +164,17 @@ fissionFusion::robot_state fissionFusion::update_state(robot_state current_robot
                                                                                  arena_area,
                                                                                  n_groupsize);
         double follow_posibility = follow_result.first;
+        follow_posibility = 1.0;
         double follow_range = std::min(follow_result.second, max_range);
+        if (isModelworks == true)
+        {
+            if (firstTimefusion == true)
+            {
+                follow_posibility = 1.0;
+                follow_range = 7.5;
+                firstTimefusion = false;
+            }
+        }
         geometry_msgs::msg::PoseStamped Pose = sffm_choose_follow_target(follow_posibility, follow_range);
 
         if (selected_target == "none") // not found target
