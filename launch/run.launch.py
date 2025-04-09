@@ -11,6 +11,7 @@ def generate_launch_description():
 
     # 声明可传入的参数（默认值也可以保留）
     declare_args = [
+        DeclareLaunchArgument('use_sim_time', default_value='false'),
         DeclareLaunchArgument('results_file_path', default_value='/home/tianfu/fission_fusion_ws/src/fission_fusion/data/output.csv'),
         DeclareLaunchArgument('isMinCommunication', default_value='true'),
         DeclareLaunchArgument('isConCommunication', default_value='true'),
@@ -32,6 +33,7 @@ def generate_launch_description():
                 namespace=f'bot{i}',
                 output='screen',
                 parameters=[{
+                    "use_sim_time": LaunchConfiguration('use_sim_time'),
                     "results_file_path": LaunchConfiguration('results_file_path'),
                     "isMinCommunication": LaunchConfiguration('isMinCommunication'),
                     "isConCommunication": LaunchConfiguration('isConCommunication'),
@@ -52,6 +54,7 @@ def generate_launch_description():
         output='screen',
         arguments=['-d', "/home/tianfu/fission_fusion_ws/src/fission_fusion/launch/rviz/defaul.rviz"],
         condition=IfCondition(LaunchConfiguration('use_rviz')),
+        parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}]
     )
     nodes.append(rviz_node)
 
