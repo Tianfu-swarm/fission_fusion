@@ -8,10 +8,13 @@ find_package(std_msgs REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(angles REQUIRED)
 find_package(nav_msgs REQUIRED)
-find_package(tf2_geometry_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+
 
 
 # Include directories for generated message headers
@@ -26,7 +29,8 @@ add_executable(fission_fusion src/P_controller.cpp
                               src/SDRM_controller.cpp 
                               src/main.cpp 
                               src/skybat_controller.cpp
-                              src/SFFM.cpp)
+                              src/SFFM.cpp
+                              src/extrema_propagation.cpp)
 
 # Link dependencies to the executable
 ament_target_dependencies(fission_fusion
@@ -36,7 +40,9 @@ ament_target_dependencies(fission_fusion
   nav_msgs
   geometry_msgs
   visualization_msgs
+  tf2_ros
   tf2_geometry_msgs
+  tf2
   angles
   sensor_msgs
 )

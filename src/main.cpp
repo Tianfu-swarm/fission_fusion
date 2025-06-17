@@ -103,8 +103,6 @@ void fissionFusion::configure(const std::string &yaml_file)
         lambda_social_ = yaml["lambda_social"].as<double>();
 
         // PD Parameters
-        prev_distance_error = yaml["pd_parameters"]["prev_distance_error"].as<double>();
-        prev_angle_error = yaml["pd_parameters"]["prev_angle_error"].as<double>();
         control_loop_duration = yaml["pd_parameters"]["control_loop_duration"].as<double>();
         Kp_distance = yaml["pd_parameters"]["Kp_distance"].as<double>();
         Kd_distance = yaml["pd_parameters"]["Kd_distance"].as<double>();
@@ -158,32 +156,31 @@ void fissionFusion::configure(const std::string &yaml_file)
 
 void fissionFusion::update_subscriptions()
 {
-    // 获取当前系统中的所有话题
     auto topic_names_and_types = this->get_topic_names_and_types();
     for (const auto &topic : topic_names_and_types)
     {
         const auto &topic_name = topic.first;
 
-        // 检查是否为目标话题：包含 "/pose" 且未订阅
+        // 忽略无发布者的话题
+        if (this->count_publishers(topic_name) == 0)
+        {
+            continue;
+        }
+
         if (topic_name.find("/pose") != std::string::npos &&
             subscriptions_.find(topic_name) == subscriptions_.end())
         {
-            // 提取机器人 ID 作为 key，例如 /bot12/pose -> /bot12
             std::string robot_id = topic_name.substr(0, topic_name.rfind("/pose"));
 
-            // 动态创建订阅器
             auto sub = this->create_subscription<geometry_msgs::msg::PoseStamped>(
                 topic_name,
                 10,
                 [this, robot_id](geometry_msgs::msg::PoseStamped::SharedPtr msg)
                 {
-                    all_pose_callback(robot_id, msg); // 传入 robot_id
+                    all_pose_callback(robot_id, msg);
                 });
 
-            // 保存到订阅列表中，防止重复订阅
             subscriptions_[topic_name] = sub;
-
-            // 初始化对应的 pose 数据，使用 robot_id 作为 key
             poses_[robot_id] = geometry_msgs::msg::PoseStamped();
         }
     }

@@ -329,6 +329,9 @@ void fissionFusion::SDRM_social_influence()
     double v = Kp_distance * distance + Kd_distance * distance_error_rate;
     double omega = Kp_angle * angle_error + Kd_angle * angle_error_rate;
 
+    prev_distance_error = distance;
+    prev_angle_error = angle_error;
+
     if (fabs(angle_error) > M_PI / 4)
     {            // 如果角度误差大于 45 度
         v = 0.0; // 先转向

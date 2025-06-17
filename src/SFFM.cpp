@@ -8,47 +8,65 @@
  */
 void fissionFusion::sffm_controler_step()
 {
+
     // boot time
     if ((this->get_clock()->now() - boot_time) < boot_wait_time)
     {
-        fissionFusion::SDRM_random_walk();
-        fissionFusion::SDRM_publish_velocity();
-        // setup
-        expected_subgroup_size = std::max(2.0, std::round(expected_subgroup_size - normal_distribution()));
+        current_state = RANDOM_WALK;
+        execute_state_behavior(current_state);
 
-        // diferent group size
-        std::regex re("\\d+");
-        std::smatch match;
-        int number_id;
-        if (std::regex_search(current_namespace, match, re))
-        {
-            number_id = std::stoi(match.str());
-        }
+        // // setup
+        // expected_subgroup_size = std::max(2.0, std::round(expected_subgroup_size - normal_distribution()));
+
+        // // diferent group size
+        // std::regex re("\\d+");
+        // std::smatch match;
+        // int number_id;
+        // if (std::regex_search(current_namespace, match, re))
+        // {
+        //     number_id = std::stoi(match.str());
+        // }
+
         // if (number_id > 27)
         // {
         //     expected_subgroup_size = 7;
         // }
 
-        std::cout << number_id << " expected_subgroup_size:" << expected_subgroup_size << std::endl;
+        // std::cout << number_id << " expected_subgroup_size:" << expected_subgroup_size << std::endl;
+        srand(static_cast<unsigned int>(this->get_clock()->now().nanoseconds())); // 初始化随机种子
+
         return;
     }
 
-    history_group_size.push_back(sffm_detect_group_size(current_namespace));
-    if (history_group_size.size() > history_time)
+    double estimated_group_size;
+    if (current_state != STAY)
     {
-        history_group_size.erase(history_group_size.begin()); // 删除第一个元素
+        estimated_group_size = 1;
+    }
+    else
+    {
+        estimated_group_size = extrema_propagation();
     }
 
-    double mean = std::accumulate(history_group_size.begin(), history_group_size.end(), 0.0) / history_group_size.size();
-    double group_size = std::floor(mean);
+    if (estimated_group_size != -1)
+    {
+        history_group_size.push_back(estimated_group_size);
+        if (history_group_size.size() > history_time)
+        {
+            history_group_size.erase(history_group_size.begin());
+        }
 
-    write_buffer << current_namespace << ","
-                 << std::fixed << this->get_clock()->now().seconds()
-                 << "," << sffm_detect_group_size(current_namespace) << "\n";
+        double mean = std::accumulate(history_group_size.begin(), history_group_size.end(), 0.0) / history_group_size.size();
+        double current_group_size = std::round(mean);
+
+        write_buffer << current_namespace << ","
+                     << std::fixed << this->get_clock()->now().seconds()
+                     << "," << current_group_size << "\n";
+    }
 
     // 每 5 秒写入一次文件
     rclcpp::Time now = this->get_clock()->now();
-    if ((now - last_flush_time).seconds() > 5.0)
+    if ((now - last_flush_time).seconds() > 5)
     {
         std::ofstream file(results_file_path, std::ios::app);
         if (file.is_open())
@@ -65,32 +83,64 @@ void fissionFusion::sffm_controler_step()
         }
     }
 
-    current_state = update_state(current_state);
+    // 发布自己的id.如果当前group不满足自己的期望
+    std::regex re("\\d+");
+    std::smatch match;
+    int number_id;
+    if (std::regex_search(current_namespace, match, re))
+    {
+        number_id = std::stoi(match.str());
+    }
 
-    switch (current_state)
+    std_msgs::msg::Float64MultiArray rab_actuator;
+    rab_actuator.data.push_back(number_id);
+    rab_actuator.data.push_back(estimated_group_size);
+    rab_actuator_publisher_->publish(rab_actuator);
+
+    current_state = update_state(current_state);
+    execute_state_behavior(current_state);
+}
+
+void fissionFusion::execute_state_behavior(robot_state state)
+{
+    switch (state)
     {
     case RANDOM_WALK:
     {
         // random_walk
-        SDRM_social_target.header.frame_id.clear();
+        target_transform.header.frame_id.clear();
 
-        fissionFusion::SDRM_random_walk();
+        auto [v, omega] = random_walk(
+            /*mean_v=*/1.0, /*std_v=*/0.5,
+            /*mean_ω=*/0.0, /*std_ω=*/0.5);
+        geometry_msgs::msg::Twist twist_msg;
 
-        std::pair<double, double> results = local_path_planning(current_namespace);
+        std::pair<double, double> results = local_path_planning();
         if (results.first != 0)
         {
-            SDRM_linear_velocity = results.first;
-            SDRM_angular_velocity = results.second;
+            twist_msg.linear.x = results.first;
+            twist_msg.linear.y = 0.0;
+            twist_msg.linear.z = 0.0;
+
+            twist_msg.angular.x = 0.0;
+            twist_msg.angular.y = 0.0;
+            twist_msg.angular.z = results.second;
+            // std::cout << "local path planning: v = " << results.first << " z = " << results.second << std::endl;
         }
         else
         {
-            SDRM_linear_velocity = SDRM_linear_velocity; // 不变
-            SDRM_angular_velocity = SDRM_angular_velocity;
+            twist_msg.linear.x = v;
+            twist_msg.linear.y = 0.0;
+            twist_msg.linear.z = 0.0;
+
+            twist_msg.angular.x = 0.0;
+            twist_msg.angular.y = 0.0;
+            twist_msg.angular.z = omega;
         }
 
         if (isAbstacle == false)
         {
-            fissionFusion::SDRM_publish_velocity();
+            cmd_vel_publisher_->publish(twist_msg);
         }
         break;
     }
@@ -98,11 +148,22 @@ void fissionFusion::sffm_controler_step()
     case FUSION:
     {
         // fusion
-        fissionFusion::SDRM_social_influence();
+        fissionFusion::refresh_target_transform();
+
+        std::pair<double, double> control_command = pd_control_to_target();
+
+        geometry_msgs::msg::Twist twist_msg;
+        twist_msg.linear.x = control_command.first;
+        twist_msg.linear.y = 0.0;
+        twist_msg.linear.z = 0.0;
+
+        twist_msg.angular.x = 0.0;
+        twist_msg.angular.y = 0.0;
+        twist_msg.angular.z = control_command.second;
 
         if (isAbstacle == false)
         {
-            fissionFusion::SDRM_publish_velocity();
+            cmd_vel_publisher_->publish(twist_msg);
         }
         break;
     }
@@ -110,26 +171,39 @@ void fissionFusion::sffm_controler_step()
     case FISSION:
     {
         // fission
-        SDRM_social_target.header.frame_id.clear();
-        fissionFusion::SDRM_random_walk();
-        SDRM_linear_velocity = SDRM_linear_velocity * 2;
-        SDRM_angular_velocity = SDRM_angular_velocity * 2;
+        target_transform.header.frame_id.clear();
 
-        std::pair<double, double> results = local_path_planning(current_namespace);
+        auto [v, omega] = random_walk(
+            /*mean_v=*/1.0, /*std_v=*/0.5,
+            /*mean_ω=*/0.0, /*std_ω=*/0.8);
+        geometry_msgs::msg::Twist twist_msg;
+
+        std::pair<double, double> results = local_path_planning();
         if (results.first != 0)
         {
-            SDRM_linear_velocity = results.first;
-            SDRM_angular_velocity = results.second;
+            twist_msg.linear.x = results.first;
+            twist_msg.linear.y = 0.0;
+            twist_msg.linear.z = 0.0;
+
+            twist_msg.angular.x = 0.0;
+            twist_msg.angular.y = 0.0;
+            twist_msg.angular.z = results.second;
+            // std::cout << "local path planning: v = " << results.first << " z = " << results.second << std::endl;
         }
         else
         {
-            SDRM_linear_velocity = SDRM_linear_velocity; // 不变
-            SDRM_angular_velocity = SDRM_angular_velocity;
+            twist_msg.linear.x = v;
+            twist_msg.linear.y = 0.0;
+            twist_msg.linear.z = 0.0;
+
+            twist_msg.angular.x = 0.0;
+            twist_msg.angular.y = 0.0;
+            twist_msg.angular.z = omega;
         }
 
         if (isAbstacle == false)
         {
-            fissionFusion::SDRM_publish_velocity();
+            cmd_vel_publisher_->publish(twist_msg);
         }
         break;
     }
@@ -137,12 +211,19 @@ void fissionFusion::sffm_controler_step()
     case STAY:
     {
         // stop to stay
-        SDRM_social_target.header.frame_id.clear();
-        SDRM_linear_velocity = 0.0;
-        SDRM_angular_velocity = 0.0;
+        target_transform.header.frame_id.clear();
+        geometry_msgs::msg::Twist twist_msg;
+        twist_msg.linear.x = 0.0;
+        twist_msg.linear.y = 0.0;
+        twist_msg.linear.z = 0.0;
+
+        twist_msg.angular.x = 0.0;
+        twist_msg.angular.y = 0.0;
+        twist_msg.angular.z = 0.0;
+
         if (isAbstacle == false)
         {
-            fissionFusion::SDRM_publish_velocity();
+            cmd_vel_publisher_->publish(twist_msg);
         }
         break;
     }
@@ -163,32 +244,46 @@ fissionFusion::robot_state fissionFusion::update_state(robot_state current_robot
         std::pair<double, double> follow_result = sffm_estimate_posibility_range(expected_subgroup_size,
                                                                                  arena_area,
                                                                                  n_groupsize);
-        double follow_posibility = follow_result.first;
-        follow_posibility = 1.0;
-        double follow_range = std::min(follow_result.second, max_range);
-        if (isModelworks == true)
-        {
-            if (firstTimefusion == true)
-            {
-                follow_posibility = 1.0;
-                follow_range = 15;
-                firstTimefusion = false;
-            }
-        }
-        geometry_msgs::msg::PoseStamped Pose = sffm_choose_follow_target(follow_posibility, follow_range);
+        static bool INIT_PHASE = true;
 
-        if (selected_target == "none") // not found target
+        double follow_posibility = follow_result.first;
+        double follow_radius = follow_result.second;
+
+        // 判断是否在初始化阶段
+        if (INIT_PHASE)
+        {
+            std::cout << "INIT_PHASE, follow posibility is " << follow_posibility << std::endl;
+            INIT_PHASE = false;
+        }
+        else
+        {
+            follow_posibility = 1.0; // 只有初始时或fission时才使用估计的概率
+        }
+
+        // if (isModelworks == true)
+        // {
+        //     if (firstTimefusion == true)
+        //     {
+        //         follow_posibility = 1.0;
+        //         follow_range = 15;
+        //         firstTimefusion = false;
+        //     }
+        // }
+
+        sffm_choose_follow_target(follow_posibility, follow_radius);
+
+        if (target_transform.header.frame_id == "none") // not found target
         {
             return RANDOM_WALK;
         }
-        else if (selected_target == "non-follower")
+        else if (target_transform.header.frame_id == "non-follower")
         {
             // non-follower
-            initial_group_size = sffm_detect_group_size(current_namespace);
+            initial_group_size = 1;
             stay_start_time = this->get_clock()->now();
             wait_time = rclcpp::Duration::from_seconds(static_cast<double>(Waiting_time_scale_factor * initial_group_size));
 
-            RCLCPP_INFO(this->get_logger(), "from RANDOM_WALK to STAY");
+            // RCLCPP_INFO(this->get_logger(), "from RANDOM_WALK to STAY");
             return STAY;
         }
         else
@@ -202,45 +297,74 @@ fissionFusion::robot_state fissionFusion::update_state(robot_state current_robot
 
     case FUSION:
     {
-        double delta_distance = calculate_distance(current_pose, poses_[selected_target]);
-        double target_movement = calculate_distance(last_target_pose, poses_[selected_target]);
-
-        if (delta_distance < 0.8)
+        // 1. 检查目标是否丢失
+        if (target_transform.header.frame_id == "none" ||
+            target_transform.header.frame_id == "non-follower" ||
+            target_transform.header.frame_id.empty())
         {
-            // follow a follower
-            initial_group_size = sffm_detect_group_size(current_namespace);
+            return RANDOM_WALK;
+        }
+
+        // 2. 计算目标距离
+        double dx = target_transform.transform.translation.x;
+        double dy = target_transform.transform.translation.y;
+        double delta_distance = std::sqrt(dx * dx + dy * dy);
+
+        // 3. 到达目标 → STAY
+        if (delta_distance < 0.5)
+        {
+            initial_group_size = 1; // 临时设置，可替换为检测值
             stay_start_time = this->get_clock()->now();
-            wait_time = rclcpp::Duration::from_seconds(static_cast<double>(Waiting_time_scale_factor * initial_group_size));
+            wait_time = rclcpp::Duration::from_seconds(
+                static_cast<double>(Waiting_time_scale_factor * initial_group_size));
+            target_transform.child_frame_id.clear();
             return STAY;
         }
-        else
+        else if (isConCommunication) // 连续通信
         {
-            last_target_pose = poses_[selected_target];
-            double target_group_size = sffm_detect_group_size(selected_target);
-
-            // Continuous Communication Strategy
-            if (isConCommunication == true)
+            std::cout << "isConCommunication open-------------------" << std::endl;
+            // 提取目标 ID
+            static const std::regex re(R"(bot(\d+)/)");
+            std::smatch m;
+            int target_id = -1;
+            if (std::regex_search(target_transform.child_frame_id, m, re) && m.size() >= 2)
             {
-                if (target_group_size < (expected_subgroup_size + groupsize_tolerance + 1))
-                {
-                    return FUSION;
-                }
-                else
-                {
-                    if (calculate_distance(current_pose, poses_[selected_target]) > 5)
-                    {
-                        return RANDOM_WALK;
-                    }
-                    else
-                    {
-                        return FISSION;
-                    }
-                }
+                target_id = std::stoi(m[1].str());
             }
             else
             {
-                return FUSION; // no: Continuous Communication Strategy
+                return RANDOM_WALK; // 提取失败，无法做通信判断
             }
+
+            // 获取目标群体大小
+            double target_group_size = Extract_Rab_Data_groupsize(target_id);
+            if (target_group_size == -1)
+            {
+                return RANDOM_WALK; // 数据丢失或目标异常
+            }
+
+            // 通信策略：决定是继续融合、分裂还是放弃
+            if (target_group_size < (expected_subgroup_size + groupsize_tolerance))
+            {
+                return FUSION; // 群体未满，继续融合
+            }
+            else
+            {
+                // 判断是否离目标很近
+                if (delta_distance > 5.0)
+                {
+                    return RANDOM_WALK;
+                }
+                else
+                {
+                    return FISSION;
+                }
+            }
+        }
+        else
+        {
+            // std::cout << "target frame id is " << target_transform.header.frame_id << std::endl;
+            return FUSION;
         }
 
         break;
@@ -248,51 +372,163 @@ fissionFusion::robot_state fissionFusion::update_state(robot_state current_robot
 
     case FISSION:
     {
-        // double mean = std::accumulate(history_group_size.begin(), history_group_size.end(), 0.0) / history_group_size.size();
-        // double actual_group_size = std::floor(mean);
-        // if (std::abs(actual_group_size - expected_subgroup_size) <= groupsize_tolerance)
-        // {
-        //     return STAY;
-        // }
+        static int fission_lost_count = 0; // 局部静态变量，跨调用保留值
+        const int fission_lost_threshold = 20;
 
-        if (calculate_distance(sffm_fission_pose, current_pose) > max_range)
+        if (fission_transform.header.frame_id == "none" || fission_transform.header.frame_id.empty())
         {
-            RCLCPP_INFO(this->get_logger(), "from FISSION to RANDOM: %f",
-                        calculate_distance(sffm_fission_pose, current_pose));
-            return RANDOM_WALK;
+            double min_dist = std::numeric_limits<double>::max();
+            geometry_msgs::msg::TransformStamped nearest;
+
+            for (const auto &tf : rab_tf.transforms)
+            {
+                if (tf.child_frame_id == tf.header.frame_id)
+                    continue;
+
+                double x = tf.transform.translation.x;
+                double y = tf.transform.translation.y;
+                double dist = std::sqrt(x * x + y * y);
+
+                if (dist < min_dist)
+                {
+                    min_dist = dist;
+                    nearest = tf;
+                }
+            }
+
+            if (min_dist < std::numeric_limits<double>::max())
+            {
+                fission_transform = nearest;
+                fission_lost_count = 0;
+            }
+            else
+            {
+                fission_lost_count++;
+                if (fission_lost_count >= fission_lost_threshold / 5)
+                {
+                    fission_lost_count = 0;
+                    fission_transform.header.frame_id.clear();
+                    // std::cout << "from fission to random, because no neighbors in the group" << std::endl;
+                    return RANDOM_WALK;
+                }
+            }
         }
         else
         {
-            return FISSION;
+            bool found = false;
+            static double fission_distance;
+            for (const auto &tf : rab_tf.transforms)
+            {
+                if (tf.child_frame_id == fission_transform.child_frame_id)
+                {
+                    found = true;
+                    double x = tf.transform.translation.x;
+                    double y = tf.transform.translation.y;
+                    fission_distance = std::sqrt(x * x + y * y);
+                    // std::cout << "fission_distance is " << fission_distance << std::endl;
+                    break;
+                }
+            }
+
+            if (found)
+            {
+                if (fission_distance > 2 * follow_range)
+                {
+                    std::cout << "\033[1;33m" << "[Fission]" << "\033[0m" << " Return random walk : fission_distance = " << fission_distance << std::endl;
+                    fission_lost_count = 0;
+                    fission_distance = -1;
+                    fission_transform.header.frame_id.clear();
+                    return RANDOM_WALK;
+                }
+                fission_lost_count = 0;
+            }
+            else
+            {
+                std::set<std::string> expected_ids;
+                for (int i = 0; i <= 11; ++i)
+                {
+                    expected_ids.insert("bot" + std::to_string(i) + "/base_link");
+                }
+
+                std::set<std::string> present_ids;
+                for (const auto &tf : rab_tf.transforms)
+                {
+                    present_ids.insert(tf.child_frame_id);
+                }
+
+                std::vector<std::string> missing_bots;
+                for (const auto &id : expected_ids)
+                {
+                    if (present_ids.find(id) == present_ids.end())
+                    {
+                        missing_bots.push_back(id);
+                    }
+                }
+
+                if (!missing_bots.empty())
+                {
+                    std::cout << "\033[1;31m" << "[Fission][Missing Bots]" << "\033[0m ";
+                    for (const auto &id : missing_bots)
+                    {
+                        std::cout << id << " ";
+                    }
+                    std::cout << std::endl;
+                }
+
+                fission_lost_count++;
+                if (fission_lost_count >= fission_lost_threshold)
+                {
+
+                    std::cout << "\033[1;33m" << "[Fission]" << "\033[0m" << " Return random walk: lost_count = "
+                              << fission_lost_count << " latest fission_distance = " << fission_distance
+                              << " rab_tf size = " << rab_tf.transforms.size() << std::endl;
+                    fission_lost_count = 0;
+                    fission_distance = -1;
+                    fission_transform.header.frame_id.clear();
+                    return RANDOM_WALK;
+                }
+            }
         }
-        break;
+
+        return FISSION;
     }
 
     case STAY:
     {
-        double mean = std::accumulate(history_group_size.begin(), history_group_size.end(), 0.0) / history_group_size.size();
-        double actual_group_size = std::floor(mean); // 一段时间的平均值代替当前大小，更稳定
+        if (this->get_clock()->now() - Maintain_state_start_time < rclcpp::Duration::from_seconds(1.0))
+        {
+            target_transform.child_frame_id.clear();
+            return STAY;
+        }
+
+        double actual_group_size = std::round(history_group_size.back());
         if (actual_group_size > (expected_subgroup_size + groupsize_tolerance))
         { // group larger than expected size
             std::pair<double, double> follow_result = sffm_estimate_posibility_range(expected_subgroup_size,
                                                                                      arena_area,
                                                                                      actual_group_size);
-            double follow_posibility = 1 - ((actual_group_size - expected_subgroup_size) / actual_group_size) / 1.5;
-            double follow_range = 2;
-            geometry_msgs::msg::PoseStamped Pose = sffm_choose_follow_target(follow_posibility, follow_range);
+            double follow_posibility = 1 - ((actual_group_size - expected_subgroup_size) / actual_group_size / 1.5);
+            // std::cout << "actual_group_size = " << actual_group_size
+            //           << ", expected_subgroup_size = " << expected_subgroup_size
+            //           << ", follow_posibility = " << follow_posibility << std::endl;
+            double follow_radius = 2;
 
-            if (selected_target == "non-follower")
+            sffm_choose_follow_target(follow_posibility, follow_radius);
+
+            if (target_transform.header.frame_id == "non-follower")
             {
                 // fission from group
-                RCLCPP_INFO(this->get_logger(), "from STAY to FISSION, group larger than expected size");
+                std::cout << "\033[1;32m" << "[Stay]" << "\033[0m" << " Group larger than expected size, size = " << actual_group_size << std::endl;
+
                 fission_start_time = this->get_clock()->now();
                 sffm_fission_pose = current_pose;
                 return FISSION;
             }
             else
             {
-                selected_target.clear();
+                target_transform = geometry_msgs::msg::TransformStamped();
                 Maintain_state_start_time = this->get_clock()->now(); // matain state
+                target_transform.child_frame_id.clear();
                 return STAY;
             }
         }
@@ -310,7 +546,7 @@ fissionFusion::robot_state fissionFusion::update_state(robot_state current_robot
             rclcpp::Time time_now = this->get_clock()->now();
             if (time_now - stay_start_time > wait_time)
             {
-                RCLCPP_INFO(this->get_logger(), "from STAY to FISSION, Waiting time Run out.");
+                std::cout << "\033[1;32m" << "[Stay]" << "\033[0m" << " Waiting time Run out, wait time = " << wait_time.seconds() << std::endl;
 
                 fission_start_time = this->get_clock()->now();
                 sffm_fission_pose = current_pose;
@@ -318,18 +554,20 @@ fissionFusion::robot_state fissionFusion::update_state(robot_state current_robot
             }
             else
             {
+                target_transform.child_frame_id.clear();
                 return STAY;
             }
         }
         else
         {
+            target_transform.child_frame_id.clear();
             return STAY;
         }
 
         break;
     }
     default:
-        return STAY;
+        return RANDOM_WALK;
     }
 }
 
@@ -389,70 +627,70 @@ std::vector<std::pair<std::string, geometry_msgs::msg::PoseStamped>> fissionFusi
     return final_candidates;
 }
 
-geometry_msgs::msg::PoseStamped
-fissionFusion::sffm_choose_follow_target(double posibility, double follow_radius)
+void fissionFusion::sffm_choose_follow_target(double posibility, double follow_radius)
 {
-    // 初始化一个空的 PoseStamped 作为默认返回值
-    geometry_msgs::msg::PoseStamped target_pose;
-    target_pose.header.frame_id = "none";
+    // 初始化为空
+    target_transform.header.frame_id = "none";
 
     // 1. 随机决定是否跟随
-    std::random_device rd;                                 // 获取随机种子
-    std::mt19937 rng(rd());                                // 使用 Mersenne Twister 生成器
-    std::uniform_real_distribution<double> dist(0.0, 1.0); // 生成 [0,1] 之间的随机数
+    std::random_device rd;
+    std::mt19937 rng(rd());
+    std::uniform_real_distribution<double> dist(0.0, 1.0);
 
-    double random_value = dist(rng); // 生成随机数
-
+    double random_value = dist(rng);
     if (random_value > posibility)
     {
-        selected_target = "non-follower"; // no target
-        return target_pose;               // 不跟随，返回默认空目标
+        target_transform.header.frame_id = "non-follower";
+        return;
     }
 
-    // 1. 查找半径 follow_radius 内的目标
-    std::vector<std::pair<std::string, geometry_msgs::msg::PoseStamped>> candidates;
-    for (const auto &[id, pose] : poses_)
+    // 2. 获取当前命名空间
+    std::string ns = this->get_namespace(); // "/bot0"
+    if (!ns.empty() && ns.front() == '/')
     {
-        const std::string &topic_name = id;
-        // 提取话题的命名空间
-        size_t first_slash = topic_name.find('/');
-        size_t second_slash = topic_name.find('/', first_slash + 1);
+        ns.erase(0, 1); // "bot0"
+    }
 
-        // 确保找到第二个斜杠，提取命名空间
-        std::string topic_namespace = (second_slash != std::string::npos)
-                                          ? topic_name.substr(0, second_slash)
-                                          : topic_name;
-        if (topic_namespace == current_namespace)
-            continue; // 不能自己跟随自己
+    // 3. 筛选候选目标
+    std::vector<geometry_msgs::msg::TransformStamped> candidates;
+    for (auto &tf : rab_tf.transforms)
+    {
+        if (tf.child_frame_id == tf.header.frame_id)
+        {
+            continue; // 跳过自己
+        }
 
-        double distance = calculate_distance(current_pose, pose);
+        // 提取平移距离
+        double dx = tf.transform.translation.x;
+        double dy = tf.transform.translation.y;
+        double dz = tf.transform.translation.z;
+
+        double distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+
         if (distance <= follow_radius)
         {
-            // 复制 pose 并修改 frame_id，而不修改原始 poses_
-            geometry_msgs::msg::PoseStamped modified_pose = pose;
-            modified_pose.header.frame_id = "map";
-            candidates.emplace_back(id, modified_pose);
+            candidates.push_back(tf); // 仅保留在范围内的邻居
         }
     }
 
-    // 2 Minimal Communication Strategy
-    if (isMinCommunication == true)
-    {
-        candidates = attrctive_of_group(candidates);
-    }
-
-    // 3. 从候选者中随机选择一个目标
+    // 4. 从筛选后的候选中随机选择一个
     if (!candidates.empty())
     {
-        int index = std::rand() % candidates.size(); // 随机索引
-        selected_target = candidates[index].first;
-        return candidates[index].second; // 返回目标的 id 和 Pose
+        std::uniform_int_distribution<> index_dist(0, candidates.size() - 1);
+        int index = index_dist(rng);
+        target_transform = candidates[index];
+
+        double dx = target_transform.transform.translation.x;
+        double dy = target_transform.transform.translation.y;
+        double dz = target_transform.transform.translation.z;
+        double distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+
+        std::cout << "\033[1;34m" << "[Fusion]" << "\033[0m" << " Selected target: " << target_transform.child_frame_id
+                  << " | Distance: " << distance << std::endl;
     }
     else
     {
-        geometry_msgs::msg::PoseStamped no_target;
-        selected_target = "none";
-        return no_target; // 没有可选目标，返回默认空目标和空 id
+        target_transform.header.frame_id = "none"; // 没有符合条件的目标
     }
 }
 
@@ -504,76 +742,94 @@ double fissionFusion::calculate_distance(const geometry_msgs::msg::PoseStamped &
 }
 
 // local path planning
-std::pair<double, double> fissionFusion::local_path_planning(std::string robot_namespace)
+std::pair<double, double> fissionFusion::local_path_planning()
 {
-    current_pose = poses_[robot_namespace];
-    double factor = 5.0;
+    double factor = 1.0; // 启动避障的距离阈值
     double min_distance = std::numeric_limits<double>::max();
-    std::string nearest_robot;
+    geometry_msgs::msg::TransformStamped nearest_tf;
     bool found = false;
 
-    // 遍历所有机器人，找到最近的机器人
-    for (const auto &pose_pair : poses_)
+    // 找最近邻居
+    for (const auto &tf : rab_tf.transforms)
     {
-        if (pose_pair.first == robot_namespace)
+        if (tf.child_frame_id == tf.header.frame_id)
             continue;
 
-        const auto &other_pose = pose_pair.second;
-        double distance = calculate_distance(current_pose, other_pose);
+        double x = tf.transform.translation.x;
+        double y = tf.transform.translation.y;
+        double distance = std::sqrt(x * x + y * y);
 
         if (distance < min_distance)
         {
             min_distance = distance;
-            nearest_robot = pose_pair.first;
+            nearest_tf = tf;
             found = true;
         }
     }
 
-    if (found)
+    // 如果找到邻居且距离小于阈值
+    if (found && min_distance < factor)
     {
-        const auto &nearest_pose = poses_[nearest_robot];
+        double dx = nearest_tf.transform.translation.x;
+        double dy = nearest_tf.transform.translation.y;
 
-        // 计算最近机器人相对当前位置的角度
-        double delta_x = nearest_pose.pose.position.x - current_pose.pose.position.x;
-        double delta_y = nearest_pose.pose.position.y - current_pose.pose.position.y;
-        double angle_to_other = std::atan2(delta_y, delta_x);
+        // 邻居方向
+        double angle_to_other = std::atan2(dy, dx);
 
-        // **计算远离方向的角度**
-        double escape_angle = angle_to_other + M_PI; // 直接取相反方向
-
-        // 获取当前机器人的偏航角 (yaw)
+        // 当前朝向（从四元数转 yaw）
         const auto &q = current_pose.pose.orientation;
-        double current_yaw = std::atan2(2.0 * (q.w * q.z + q.x * q.y), 1.0 - 2.0 * (q.y * q.y + q.z * q.z));
+        double current_yaw = std::atan2(
+            2.0 * (q.w * q.z + q.x * q.y),
+            1.0 - 2.0 * (q.y * q.y + q.z * q.z));
 
-        // **计算目标角度与当前角度的差值**
-        double angle_diff = escape_angle - current_yaw;
-        angle_diff = std::atan2(std::sin(angle_diff), std::cos(angle_diff)); // 归一化
+        // 当前是否仍面向邻居（与邻居方向夹角小于 90°）
+        double angle_to_neighbor = angle_to_other - current_yaw;
+        angle_to_neighbor = std::atan2(std::sin(angle_to_neighbor), std::cos(angle_to_neighbor));
 
-        // 限制角度差不超过 ±90° (π/2)
-        double max_angle_diff = M_PI / 2.0;
-        angle_diff = std::clamp(angle_diff, -max_angle_diff, max_angle_diff);
+        // 线速度根据距离动态缩放
+        double max_speed = 5.0;
+        double min_speed = 0.2;
+        double k_linear = 5.0;
+        double linear_velocity = k_linear * (factor - min_distance);
+        linear_velocity = std::clamp(linear_velocity, min_speed, max_speed);
 
-        // 线速度与角速度控制
-        double max_speed = 10.0;
-        double min_speed = 5.0;
-        double k_linear = 3.0;
-        double k_angular = 2.0;
-
-        double linear_velocity = 0.0;
-        double angular_velocity = k_angular * angle_diff;
-
-        if (min_distance < factor)
+        if (std::abs(angle_to_neighbor) > M_PI_2)
         {
-            // **调整方向后，前进**
-            linear_velocity = std::min(k_linear * (factor - min_distance), max_speed);
-            linear_velocity = std::max(linear_velocity, min_speed);
+            // 已经偏离邻居，不需要转向
+            return {linear_velocity, 0.0};
         }
 
-        return std::make_pair(linear_velocity, angular_velocity);
+        // 定义角度差计算函数（归一化到 [-π, π]）
+        auto angle_diff_fn = [](double a, double b)
+        {
+            double d = a - b;
+            return std::atan2(std::sin(d), std::cos(d));
+        };
+
+        // 比较两种切线方向
+        double tangent_left = angle_to_other + M_PI_2;
+        double tangent_right = angle_to_other - M_PI_2;
+
+        double diff_left = std::abs(angle_diff_fn(tangent_left, current_yaw));
+        double diff_right = std::abs(angle_diff_fn(tangent_right, current_yaw));
+
+        // 选择旋转量更小的方向
+        double tangent_angle = (diff_left < diff_right) ? tangent_left : tangent_right;
+
+        // 控制参数
+        double control_period = 0.1; // 控制周期 = 1 / 10Hz
+        double max_omega = 20.0;     // 限制最大角速度
+
+        // 用统一的角度差函数计算角度误差
+        double angle_error = angle_diff_fn(tangent_angle, current_yaw);
+        double desired_omega = angle_error / control_period;
+        double angular_velocity = std::clamp(desired_omega, -max_omega, max_omega);
+
+        return {linear_velocity, angular_velocity};
     }
 
-    // 如果没有找到满足条件的机器人，则停止
-    return std::make_pair(0.0, 0.0);
+    // 没有近邻或不朝向邻居，不处理
+    return {0.0, 0.0};
 }
 
 // 计算二项分布的概率质量函数 (PMF)
@@ -674,7 +930,179 @@ std::pair<double, double> fissionFusion::sffm_estimate_posibility_range(double e
 
     // 用后删除
     estimate_posibility = 1 - 1 / expected_subgroupsize;
-    estimate_follow_range = max_range;
+    estimate_follow_range = follow_range;
 
     return std::make_pair(estimate_posibility, estimate_follow_range);
+}
+
+std::pair<double, double> fissionFusion::pd_control_to_target()
+{
+    // 如果没有有效目标，返回 0 控制量
+    if (target_transform.header.frame_id == "none" ||
+        target_transform.header.frame_id == "non-follower" ||
+        target_transform.header.frame_id.empty())
+    {
+        return {0.0, 0.0};
+    }
+
+    // 目标在机器人坐标系下的位置（base_link → target）
+    double dx = target_transform.transform.translation.x;
+    double dy = target_transform.transform.translation.y;
+
+    double distance = std::sqrt(dx * dx + dy * dy);
+    double angle_to_target = std::atan2(dy, dx); // 因为机器人面朝 x 轴方向
+
+    // 假设当前机器人朝向为 0，则：
+    double angle_error = angle_to_target;
+
+    // 归一化角度 [-pi, pi]
+    if (angle_error > M_PI)
+        angle_error -= 2 * M_PI;
+    else if (angle_error < -M_PI)
+        angle_error += 2 * M_PI;
+
+    rclcpp::Time now = this->get_clock()->now();
+    control_loop_duration = (now - pd_control_last_time).seconds();
+    const double min_dt = 1e-3;
+    if (control_loop_duration < min_dt)
+    {
+        control_loop_duration = min_dt;
+    }
+    pd_control_last_time = now;
+
+    // 控制器参数
+    double dt = control_loop_duration;
+
+    double distance_error_rate = (distance - prev_distance_error) / dt;
+    double angle_error_rate = (angle_error - prev_angle_error) / dt;
+
+    double v = Kp_distance * distance + Kd_distance * distance_error_rate;
+    double omega = Kp_angle * angle_error + Kd_angle * angle_error_rate;
+
+    // 转角优先策略
+    if (std::fabs(angle_error) > M_PI / 4.0)
+    {
+        v = 0.0; // 转向优先，暂停前进
+    }
+
+    // 停止条件
+    if (distance < 0.5)
+    {
+        v = 0.0;
+        omega = 0.0;
+    }
+
+    // 限速处理
+    v = std::clamp(v, -max_velocity, max_velocity);
+    omega = std::clamp(omega, -max_omega, max_omega);
+
+    prev_distance_error = distance;
+    prev_angle_error = angle_error;
+
+    return {v, omega};
+}
+
+std::pair<double, double> fissionFusion::random_walk(double mean_v,
+                                                     double std_v,
+                                                     double mean_omega,
+                                                     double std_omega)
+{
+    // static generator 保证只初始化一次
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+
+    // 分布用传入的参数
+    std::normal_distribution<double> dist_v(mean_v, std_v);
+    std::normal_distribution<double> dist_omega(mean_omega, std_omega);
+
+    // 采样并 clamp
+    double v = std::max(0.0, dist_v(gen));
+    double omega = dist_omega(gen);
+
+    return {v, omega};
+}
+
+double fissionFusion::Extract_Rab_Data_groupsize(int target_id)
+{
+    const auto &d = rab_data.data;
+
+    // 如果格式不对也报错一次
+    if (d.size() % 2 != 0)
+    {
+        RCLCPP_ERROR(this->get_logger(),
+                     "rab_data format error: data length (%zu) is not even",
+                     d.size());
+    }
+
+    // 遍历每一对 (id, group_size)
+    for (size_t i = 0; i + 1 < d.size(); i += 2)
+    {
+        int current_id = static_cast<int>(d[i]);
+        if (current_id == target_id)
+        {
+            double gs = d[i + 1];
+            return gs;
+        }
+    }
+
+    std::string want = "bot" + std::to_string(target_id) + "/base_link";
+    for (const auto &tf : rab_tf.transforms)
+    {
+        if (tf.child_frame_id == want)
+        {
+            std::cout << "there is the tf for this id,but no data" << std::endl;
+        }
+    }
+
+    // std::cout << "lost target from data, target id = " << target_id
+    //           << ", full rab_data = [";
+    for (size_t i = 0; i < d.size(); ++i)
+    {
+        std::cout << d[i]
+                  << (i + 1 < d.size() ? ", " : "");
+    }
+    std::cout << "]\n";
+    // 没找到，并返回默认值 -1.0
+    return -1.0;
+}
+
+void fissionFusion::refresh_target_transform()
+{
+    static int lost_count = 0; // 连续丢失计数器
+
+    // 当前是否本来就无目标，不处理
+    if (target_transform.header.frame_id == "none" ||
+        target_transform.header.frame_id == "non-follower" ||
+        target_transform.header.frame_id.empty())
+    {
+        lost_count = 0; // 无目标时重置
+        return;
+    }
+
+    bool found = false;
+
+    for (const auto &tf : rab_tf.transforms)
+    {
+        if (tf.child_frame_id == target_transform.child_frame_id)
+        {
+            target_transform = tf;
+            found = true;
+            lost_count = 0; // 找到了，重置丢失计数
+            rab_tf.transforms.clear();
+            break;
+        }
+    }
+
+    if (!found)
+    {
+        lost_count++;
+
+        if (lost_count >= 10)
+        {
+            target_transform.header.frame_id = "none";
+            lost_count = 0;
+            std::cout << "lost target! re-search" << std::endl;
+        }
+        // 否则：保留上一次的 target_transform，不变
+    }
 }
