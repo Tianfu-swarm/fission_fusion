@@ -56,24 +56,41 @@
       <body position="5,0,0" orientation="0,0,0"/>
     </box>
 
-    <!-- light source -->
-    <!-- <light id="light"
-           position="0,0,0.5"
-           orientation="0,0,0"
-           color="yellow"
-           intensity="3.0"
-           medium="leds"/> -->
+   
+   <foot-bot id="bot0" radio_medium="wifi" radio_range="1.2" rab_range="50" omnidirectional_camera_aperture="89.99" rab_data_size="24">
+      <body position="-3,-3,0" orientation="0,0,0"/>
+      <controller config="argos_ros_bot"/>
+    </foot-bot>
+    <foot-bot id="bot1" radio_medium="wifi" radio_range="1.2" rab_range="50" omnidirectional_camera_aperture="89.99" rab_data_size="24">
+      <body position="3,-2,0" orientation="0,0,0"/>
+      <controller config="argos_ros_bot"/>
+    </foot-bot>
+    <foot-bot id="bot2" radio_medium="wifi" radio_range="1.2" rab_range="50" omnidirectional_camera_aperture="89.99" rab_data_size="24">
+      <body position="3,-3,0" orientation="0,0,0"/>
+      <controller config="argos_ros_bot"/>
+    </foot-bot>
+    <foot-bot id="bot3" radio_medium="wifi" radio_range="1.2" rab_range="50" omnidirectional_camera_aperture="89.99" rab_data_size="24">
+      <body position="2,-3,0" orientation="0,0,0"/>
+      <controller config="argos_ros_bot"/>
+    </foot-bot>
+    <foot-bot id="bot4" radio_medium="wifi" radio_range="1.2" rab_range="50" omnidirectional_camera_aperture="89.99" rab_data_size="24">
+      <body position="1,-3,0" orientation="0,0,0"/>
+      <controller config="argos_ros_bot"/>
+    </foot-bot>
+    <foot-bot id="bot5" radio_medium="wifi" radio_range="1.2" rab_range="50" omnidirectional_camera_aperture="89.99" rab_data_size="24">
+      <body position="0,-3,0" orientation="0,0,0"/>
+      <controller config="argos_ros_bot"/>
+    </foot-bot>
+    <foot-bot id="bot6" radio_medium="wifi" radio_range="1.2" rab_range="50" omnidirectional_camera_aperture="89.99" rab_data_size="24">
+      <body position="-1,-3,0" orientation="0,0,0"/>
+      <controller config="argos_ros_bot"/>
+    </foot-bot>
+    <foot-bot id="bot7" radio_medium="wifi" radio_range="1.2" rab_range="50" omnidirectional_camera_aperture="89.99" rab_data_size="24">
+      <body position="-2,-3,0" orientation="0,0,0"/>
+      <controller config="argos_ros_bot"/>
+    </foot-bot>
+    
 
-    <!-- distribute 42 foot-bots -->
-    <distribute>
-      <position    method="uniform"  min="-5,-5,0" max="5,5,0"/>
-      <orientation method="gaussian" mean="0,0,0"    std_dev="360,0,0"/>
-      <entity quantity="21" max_trials="100">
-         <foot-bot id="bot" rab_range="10" omnidirectional_camera_aperture="89.99" rab_data_size="36" radio_medium="wifi" radio_range="0.8">
-          <controller config="argos_ros_bot" />
-        </foot-bot>
-      </entity>
-    </distribute>
 
   </arena>
 
@@ -89,7 +106,7 @@
   <!-- ********* -->
   <media>
     <led               id="leds"/>
-    <range_and_bearing id="rab" check_occlusions="false"/>
+    <range_and_bearing id="rab"/>
     <!-- simple_radio medium -->
     <simple_radio      id="wifi" index="grid" grid_size="5,5,5"/>
   </media>

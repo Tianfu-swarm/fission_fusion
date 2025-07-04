@@ -172,9 +172,14 @@ double fissionFusion::extrema_propagation()
         status.sync_to_round > current_round_id &&
         has_started_convergence)
     {
-        // std::cout << "[fissionFusion] Syncing to round "
-        //           << status.sync_to_round << " (was " << current_round_id
-        //           << ") after convergence start. Last N = " << N << std::endl;
+        // if (current_namespace == "/bot0")
+        // {
+        //     std::cout << this->get_clock()->now().seconds()
+        //               << " sync from round " << current_round_id
+        //               << " to " << status.sync_to_round
+        //               << " estimated size is " << N
+        //               << std::endl;
+        // }
 
         current_round_id = status.sync_to_round;
         x.clear();
@@ -182,6 +187,7 @@ double fissionFusion::extrema_propagation()
         has_started_convergence = false;
         propagation_hops = 0;
         N_history.clear();
+
         return N;
     }
 
@@ -191,7 +197,7 @@ double fissionFusion::extrema_propagation()
         if (status.x_updated)
             propagation_hops = 0;
         else
-            propagation_hops++;
+            propagation_hops++; // 向量没有变化的次数
     }
 
     // 判断稳定性
@@ -211,18 +217,18 @@ double fissionFusion::extrema_propagation()
 
     if (stable && propagation_hops >= required_propagation_hops)
     {
-        // if (current_namespace == "/bot0")
-        //     std::cout << "[fissionFusion] Group size stabilized at N = " << N
-        //               << " for " << stability_window << " iterations and propagated "
-        //               << propagation_hops << " hops. Moving to next round." << std::endl;
-
         x.clear();
         has_started_convergence = false;
-        current_round_id++;
-
         // if (current_namespace == "/bot0")
-        //     std::cout << "Group size = " << N << " time = " << this->get_clock()->now().seconds() << std::endl;
+        // {
+        //     std::cout << this->get_clock()->now().seconds()
+        //               << " stable from round " << current_round_id
+        //               << " to " << current_round_id + 1
+        //               << " estimated size is " << N
+        //               << std::endl;
+        // }
 
+        current_round_id++;
         return N; // 只在真正收敛时返回新估计
     }
 

@@ -72,7 +72,10 @@ From: osrf/ros:humble-desktop
     # 安装 ARGoS3
     cd /opt/container_env
     git clone https://github.com/ilpincy/argos3.git
-    cd argos3
+    cd argos3/src/plugins/robots
+    rm -rf foot-bot
+    git clone https://github.com/Tianfu-swarm/foot-bot.git
+    cd ../../../
     mkdir build_simulator
     cd build_simulator
     cmake ../src

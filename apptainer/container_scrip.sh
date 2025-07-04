@@ -56,8 +56,21 @@ echo "[READY] ARGoS initialized, Now launching ROS 2 Controller"
 
 # 运行ROS 2
 echo "Starting ROS 2 nodes with output file: $RESULTS_FILE"
+
 source /opt/container_env/fission_fusion_ws/install/setup.bash
-ros2 launch fission_fusion run.launch.py use_rviz:=false results_file_path:="$RESULTS_FILE" &
+ros2 launch fission_fusion run.launch.py use_rviz:=false \
+                                            numbers:=42.0 \
+                                            expected_subgroup_size:=21.0 \
+                                            follow_range:=2.0 \
+                                            subgroup_size_sigma:=0.0 \
+                                            groupsize_tolerance:=0.0 \
+                                            K:=500 \
+                                            early_converge_window:=6 \
+                                            isModelworks:=false \
+                                            isMinCommunication:=true \
+                                            isConCommunication:=true \
+                                            use_sim_time:=true \
+                                            results_file_path:="$RESULTS_FILE" &
 ROS2_PID=$!
 
 # 等待初始化

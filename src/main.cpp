@@ -23,8 +23,9 @@ void fissionFusion::handleProximityAvoidance(const sensor_msgs::msg::PointCloud2
         // 仅处理前方范围内的点（假设 x > 0 表示前方）
         if (x > 0.0)
         {
-            accum_x += x;
-            accum_y += y;
+            float weight = 1.0 / (std::hypot(x, y + 1e-5) * std::hypot(x, y + 1e-5)); // 距离越近权重越大
+            accum_x += weight * x;
+            accum_y += weight * y;
         }
     }
 
@@ -37,24 +38,32 @@ void fissionFusion::handleProximityAvoidance(const sensor_msgs::msg::PointCloud2
     if (distance > 0.0) // 如果累积矢量表示有障碍物
     {                   // RCLCPP_INFO(this->get_logger(), "angle is :,%f", angle);
         isAbstacle = true;
-        // 如果角度在允许范围内，直行
-        if (std::abs(angle) > 1) // 假设大于 0.05 弧度的角度为直行范围
+        // 创建随机设备和生成器
+        std::random_device rd;
+        std::mt19937 gen(rd());
+
+        // 定义随机数分布范围 [0, 2]
+        std::uniform_real_distribution<> dis(0.0, 2.0);
+
+        // 生成随机速度
+        double random_speed = dis(gen);
+        if (distance < 15) // 如果障碍物非常近
         {
-            cmd_vel.linear.x = 10;
-            cmd_vel.angular.z = 0.0;
-            // RCLCPP_INFO(this->get_logger(), "go straight...");
+            cmd_vel.linear.x = abs(angle) < 0.5 ? -2 : 2;                         // 后退
+            cmd_vel.angular.z = angle > 0 ? -3 * random_speed : 3 * random_speed; // 根据角度调整后退方向
         }
         else
         {
-            // 创建随机设备和生成器
-            std::random_device rd;
-            std::mt19937 gen(rd());
+            // 如果角度在允许范围内，直行
+            // if (std::abs(angle) > 1) // 假设大于 0.05 弧度的角度为直行范围
+            // {
+            //     cmd_vel.linear.x = 10;
+            //     cmd_vel.angular.z = 0.0;
+            //     // RCLCPP_INFO(this->get_logger(), "go straight...");
+            // }
+            // else
+            // {
 
-            // 定义随机数分布范围 [0, 2]
-            std::uniform_real_distribution<> dis(0.0, 2.0);
-
-            // 生成随机速度
-            double random_speed = dis(gen);
             // 如果角度不在直行范围内，根据角度转向
             if (angle < 0.0)
             {
@@ -68,12 +77,7 @@ void fissionFusion::handleProximityAvoidance(const sensor_msgs::msg::PointCloud2
                 cmd_vel.angular.z = random_speed; // 右转
                 // RCLCPP_INFO(this->get_logger(), "turn right...");
             }
-        }
-        if (distance < 10) // 如果障碍物非常近
-        {
-            cmd_vel.linear.x = abs(angle) < 1 ? -2 : 2; // 后退
-            cmd_vel.angular.z = angle > 0 ? -5 : 5;     // 根据角度调整后退方向
-            // RCLCPP_INFO(this->get_logger(), "go back...");
+            // }
         }
     }
     else

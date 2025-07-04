@@ -7,7 +7,7 @@ from launch.conditions import IfCondition
 
 
 def generate_nodes(context, *args, **kwargs):
-    number_of_robots = int(LaunchConfiguration('numbers').perform(context))
+    number_of_robots = int(float(LaunchConfiguration('numbers').perform(context)))
 
     nodes = []
     for i in range(number_of_robots):
@@ -27,6 +27,10 @@ def generate_nodes(context, *args, **kwargs):
                     "expected_subgroup_size": LaunchConfiguration('expected_subgroup_size'),
                     "subgroup_size_sigma": LaunchConfiguration('subgroup_size_sigma'),
                     "groupsize_tolerance": LaunchConfiguration('groupsize_tolerance'),
+                    "K": LaunchConfiguration('K'),
+                    "early_converge_window": LaunchConfiguration('early_converge_window'),
+                    "n_groupsize": LaunchConfiguration('numbers'),
+                    "follow_range": LaunchConfiguration('follow_range'),
                     "controller_type": "sffm",  # or "SDRM", "skybat", etc.
                 }],
                 remappings=[
@@ -51,7 +55,10 @@ def generate_launch_description():
         DeclareLaunchArgument('expected_subgroup_size', default_value='14'),
         DeclareLaunchArgument('subgroup_size_sigma', default_value='1'),
         DeclareLaunchArgument('groupsize_tolerance', default_value='0'),
-        DeclareLaunchArgument('numbers', default_value='20'),
+        DeclareLaunchArgument('K', default_value='1000'),
+        DeclareLaunchArgument('early_converge_window', default_value='30'),
+        DeclareLaunchArgument('numbers', default_value='20.0'),
+        DeclareLaunchArgument('follow_range', default_value='2.0'),
     ]
 
     rviz_node = Node(

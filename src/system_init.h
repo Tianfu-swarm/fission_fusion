@@ -43,8 +43,8 @@ public:
         // subscription
         pose_subscription_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
             "pose", 10, std::bind(&fissionFusion::pose_callback, this, std::placeholders::_1));
-        target_pose_subscription_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
-            "/target_pose", 10, std::bind(&fissionFusion::target_pose_callback, this, std::placeholders::_1));
+        // target_pose_subscription_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
+        //     "/target_pose", 10, std::bind(&fissionFusion::target_pose_callback, this, std::placeholders::_1));
         cmd_vel_subscription_ = this->create_subscription<geometry_msgs::msg::Twist>(
             "cmd_vel", 10, std::bind(&fissionFusion::cmd_vel_callback, this, std::placeholders::_1));
         rab_sensor_subscription_ = this->create_subscription<std_msgs::msg::Float64MultiArray>(
@@ -72,6 +72,10 @@ public:
         this->declare_parameter<double>("expected_subgroup_size", 14);
         this->declare_parameter<double>("subgroup_size_sigma", 1);
         this->declare_parameter<double>("groupsize_tolerance", 0);
+        this->declare_parameter<int>("K", 1000);
+        this->declare_parameter<int>("early_converge_window", 20);
+        this->declare_parameter<double>("n_groupsize", 40);
+        this->declare_parameter<double>("follow_range", 40);
 
         this->results_file_path = this->get_parameter("results_file_path").as_string();
         this->isMinCommunication = this->get_parameter("isMinCommunication").as_bool();
@@ -80,6 +84,13 @@ public:
         this->expected_subgroup_size = this->get_parameter("expected_subgroup_size").as_double();
         this->subgroup_size_sigma = this->get_parameter("subgroup_size_sigma").as_double();
         this->groupsize_tolerance = this->get_parameter("groupsize_tolerance").as_double();
+        this->K = this->get_parameter("K").as_int();
+        this->early_converge_window = this->get_parameter("early_converge_window").as_int();
+        this->n_groupsize = this->get_parameter("n_groupsize").as_double();
+        this->follow_range = this->get_parameter("follow_range").as_double();
+
+        required_propagation_hops = early_converge_window;
+        stability_window = early_converge_window * 2;
 
         this->declare_parameter<std::string>("controller_type", "SDRM");
         std::string controller_type = this->get_parameter("controller_type").as_string();
@@ -120,7 +131,14 @@ public:
             std::chrono::milliseconds(10),
             current_controller_);
 
-        // timerC_ = rclcpp::create_timer(
+        timerC_ = rclcpp::create_timer(
+            this->get_node_base_interface(),
+            this->get_node_timers_interface(),
+            this->get_clock(),
+            std::chrono::milliseconds(10),
+            std::bind(&fissionFusion::Pub_rab, this));
+
+        // timerD_ = rclcpp::create_timer(
         //     this->get_node_base_interface(),
         //     this->get_node_timers_interface(),
         //     this->get_clock(),
@@ -145,54 +163,53 @@ private:
         current_pose = *msg;
         current_pose.header.frame_id = "map";
     }
+
     void target_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
     {
         target_pose = *msg;
         target_pose.header.frame_id = "map";
     }
+
     void cmd_vel_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
     {
         current_vel = *msg;
     }
+
     void rab_sensor_callback(const std_msgs::msg::Float64MultiArray::SharedPtr msg)
     {
-        if (msg->data.empty())
+        rab_data.data.clear();
+        if (!msg->data.empty())
         {
-            rab_data.data.clear();
-        }
-        else
-        {
-            rab_data = *msg;
+            rab_data.data.insert(rab_data.data.end(), msg->data.begin(), msg->data.end());
         }
     }
+
     void proximity_point_callback(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
     {
         proximity_point = *msg;
     }
+
     void all_pose_callback(const std::string &topic_name, const geometry_msgs::msg::PoseStamped::SharedPtr msg)
     {
         poses_[topic_name] = *msg;
     }
+
     void rab_tf_callback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
     {
-        if (msg->transforms.empty())
+        rab_tf.transforms.clear();
+
+        if (!msg->transforms.empty())
         {
-            rab_tf.transforms.clear();
-        }
-        else
-        {
-            rab_tf = *msg;
+            rab_tf.transforms.insert(rab_tf.transforms.end(), msg->transforms.begin(), msg->transforms.end());
         }
     }
+
     void radio_sensor_callback(const std_msgs::msg::Float64MultiArray::SharedPtr msg)
     {
-        if (msg->data.empty())
+        radio_data.data.clear();
+        if (!msg->data.empty())
         {
-            radio_data.data.clear();
-        }
-        else
-        {
-            radio_data = *msg;
+            radio_data.data.insert(radio_data.data.end(), msg->data.begin(), msg->data.end());
         }
     }
 
@@ -309,6 +326,7 @@ private:
     std::string results_file_path;
     bool isMinCommunication;
     bool isConCommunication;
+    bool isMaxCommunication;
     bool isModelworks;
 
     bool firstTimefusion = true;
@@ -324,7 +342,7 @@ private:
         RANDOM_WALK
     };
 
-    robot_state current_state = RANDOM_WALK;
+    robot_state current_state;
     robot_state last_state;
 
     void sffm_controler_step();
@@ -354,21 +372,20 @@ private:
     double calculate_distance(const geometry_msgs::msg::PoseStamped &p1,
                               const geometry_msgs::msg::PoseStamped &p2);
 
-    bool isGroupSizeStable(const std::vector<double> &history_group_size, double threshold);
-
-    std::vector<std::pair<std::string, geometry_msgs::msg::PoseStamped>> attrctive_of_group(std::vector<std::pair<std::string, geometry_msgs::msg::PoseStamped>> candidates);
-
     void refresh_target_transform();
-    std::pair<double, double> pd_control_to_target();
+    std::pair<double, double> pd_control_to_target(geometry_msgs::msg::TransformStamped pose);
+
+    geometry_msgs::msg::TransformStamped computeGLJTarget();
 
     // local ptah planning
-    std::pair<double, double> local_path_planning();
+    geometry_msgs::msg::TransformStamped local_path_planning();
     // random speed
     std::pair<double, double> random_walk(double mean_v,
                                           double std_v,
                                           double mean_omega,
                                           double std_omega);
-    double Extract_Rab_Data_groupsize(int target_id);
+    std::pair<double, double> Extract_Rab_Data_groupsize(int target_id);
+    int target_id;
 
     robot_state update_state(robot_state current_robot_state);
 
@@ -384,11 +401,11 @@ private:
     double group_size;
     double group_size_distance_threshold = 1.5;
 
-    double n_groupsize = 42;
+    double n_groupsize;
     double arena_range = 10;
     double arena_area = arena_range * arena_range;
     double follow_posibility = 1;
-    double follow_range = 2;
+    double follow_range;
 
     double subgroup_size_sigma;
     double expected_subgroup_size;
@@ -412,7 +429,7 @@ private:
     {
         std::random_device rd;
         std::mt19937 gen(rd());
-        std::uniform_real_distribution<double> dist(1.0, 1.0);
+        std::uniform_real_distribution<double> dist(0, 1);
         double random_seconds = dist(gen);
         return random_seconds;
     }
@@ -422,10 +439,7 @@ private:
     rclcpp::Duration Maintain_state_time = rclcpp::Duration::from_seconds(10.0);
     rclcpp::Time Maintain_state_start_time = this->get_clock()->now() - Maintain_state_time;
 
-    double Waiting_time_scale_factor = arena_range / 8; // waiting time factor has relation with range of arena
-
-    int history_time = 5;
-    std::vector<double> history_group_size;
+    double Waiting_time_scale_factor = 5;
 
     rclcpp::Time pd_control_last_time = this->get_clock()->now();
 
@@ -435,6 +449,7 @@ private:
      * extrema_propagation
      **************************************************************************/
     double extrema_propagation();
+    double smoothed_estimate_with_window(double new_estimate);
     void initialize_vector();
     void pointwise_min(std::vector<double> &a, const std::vector<double> &b);
     double estimate_group_size_extrema();
@@ -453,15 +468,20 @@ private:
     void broadcast_vector();
 
     std::vector<double> x;       // Local vector
-    const int K = 1000;          // Dimensionality of the vector
+    int K;                       // Dimensionality of the vector
     double exponential_random(); // Generate Exp(1) random values
     int current_round_id = 1;
     std::deque<double> N_history;
     int propagation_hops = 0;
     bool has_started_convergence = false;
-    const int stability_window = 20;
-    const int early_converge_window = 5;
-    const int required_propagation_hops = 5;
+
+    double estimated_group_size;
+
+    int early_converge_window;
+    int required_propagation_hops = early_converge_window;
+    int stability_window = early_converge_window * 2;
+
+    void Pub_rab();
 
     /*************************************************************************
      * skybat controller
@@ -496,6 +516,7 @@ private:
     rclcpp::TimerBase::SharedPtr timerA_;
     rclcpp::TimerBase::SharedPtr timerB_;
     rclcpp::TimerBase::SharedPtr timerC_;
+    rclcpp::TimerBase::SharedPtr timerD_;
 
     std::function<void()> current_controller_;
 };
