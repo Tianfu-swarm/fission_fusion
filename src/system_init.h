@@ -439,7 +439,7 @@ private:
     rclcpp::Duration Maintain_state_time = rclcpp::Duration::from_seconds(10.0);
     rclcpp::Time Maintain_state_start_time = this->get_clock()->now() - Maintain_state_time;
 
-    double Waiting_time_scale_factor = 5;
+    double Waiting_time_scale_factor = 0.5;
 
     rclcpp::Time pd_control_last_time = this->get_clock()->now();
 

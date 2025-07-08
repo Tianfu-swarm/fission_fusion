@@ -3,8 +3,8 @@
 #$ -cwd
 #$ -o "logs/output.$JOB_ID.$TASK_ID.log"
 #$ -e "logs/error.$JOB_ID.$TASK_ID.log"
-#$ -t 1-2
-#$ -tc 100
+#$ -t 1-10
+#$ -tc 10
 #$ -j y
 #$ -pe smp 45
 #$ -l h_vmem=2G
@@ -27,8 +27,9 @@ BASE_DIR=$PWD
 LOCAL_RESULT_DIR=/data/scc/$USER/result
 FINAL_RESULT_DIR=$BASE_DIR/result
 SCRIPT_PATH=$BASE_DIR/container_scrip.sh
-SIF_PATH=$BASE_DIR/fission_fusion.sif
-SHARED_LOCAL_SIF=/data/scc/$USER/fission_fusion.sif
+CONTAINER_NAME=fission_fusion.sif
+SIF_PATH=$BASE_DIR/$CONTAINER_NAME
+SHARED_LOCAL_SIF=/data/scc/$USER/$CONTAINER_NAME
 LOCAL_SIF=/tmp/fission_fusion_task_${TASK_ID}.sif
 
 # 创建目录

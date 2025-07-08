@@ -47,25 +47,23 @@ void fissionFusion::sffm_controler_step()
                      << current_pose.pose.position.y << ","
                      << K << "\n";
     }
-    if (current_namespace == "/bot0")
+
+    // 每 5 秒写入一次文件
+    rclcpp::Time now = this->get_clock()->now();
+    if ((now - last_flush_time).seconds() > 1)
     {
-        // 每 5 秒写入一次文件
-        rclcpp::Time now = this->get_clock()->now();
-        if ((now - last_flush_time).seconds() > 1)
+        std::ofstream file(results_file_path, std::ios::app);
+        if (file.is_open())
         {
-            std::ofstream file(results_file_path, std::ios::app);
-            if (file.is_open())
-            {
-                file << write_buffer.str();
-                file.close(); // 自动 flush + 释放资源
-                write_buffer.str("");
-                write_buffer.clear();
-                last_flush_time = now;
-            }
-            else
-            {
-                RCLCPP_ERROR(this->get_logger(), "无法打开文件: %s", results_file_path.c_str());
-            }
+            file << write_buffer.str();
+            file.close(); // 自动 flush + 释放资源
+            write_buffer.str("");
+            write_buffer.clear();
+            last_flush_time = now;
+        }
+        else
+        {
+            RCLCPP_ERROR(this->get_logger(), "无法打开文件: %s", results_file_path.c_str());
         }
     }
 
@@ -484,8 +482,8 @@ fissionFusion::robot_state fissionFusion::update_state(robot_state current_robot
         }
         else if (actual_group_size < (expected_subgroup_size - groupsize_tolerance))
         {
-            // 如果 group size 变了，更新等待时间
-            if (actual_group_size != initial_group_size)
+            // 如果 group size 大了，更新等待时间
+            if (actual_group_size > initial_group_size)
             {
                 if (actual_group_size < initial_group_size)
                 {
