@@ -482,19 +482,33 @@ fissionFusion::robot_state fissionFusion::update_state(robot_state current_robot
         }
         else if (actual_group_size < (expected_subgroup_size - groupsize_tolerance))
         {
-            // 如果 group size 大了，更新等待时间
-            if (actual_group_size > initial_group_size)
-            {
+
+            if (actual_group_size != initial_group_size)
+            { // 如果 group size 大了，更新等待时间
+                if (actual_group_size > initial_group_size)
+                {
+                    initial_group_size = actual_group_size; // 更新 group size 记录
+                    wait_time = rclcpp::Duration::from_seconds(static_cast<double>(Waiting_time_scale_factor * initial_group_size * initial_group_size));
+                    stay_start_time = this->get_clock()->now(); // 重置等待
+                }
+                // 如果 group size小了，比较剩余时间与新时间，取小
                 if (actual_group_size < initial_group_size)
                 {
-                    // std::cout << "group size decrease--from " << initial_group_size
-                    //           << " to " << actual_group_size
-                    //           << std::endl;
-                }
+                    rclcpp::Time now = this->get_clock()->now();
+                    rclcpp::Duration elapsed_time = now - stay_start_time;
+                    rclcpp::Duration remaining_time = wait_time - elapsed_time;
 
-                initial_group_size = actual_group_size; // 更新 group size 记录
-                wait_time = rclcpp::Duration::from_seconds(static_cast<double>(Waiting_time_scale_factor * initial_group_size * initial_group_size));
-                stay_start_time = this->get_clock()->now(); // 重置等待
+                    rclcpp::Duration new_wait_time = rclcpp::Duration::from_seconds(
+                        static_cast<double>(Waiting_time_scale_factor * actual_group_size * actual_group_size));
+
+                    if (new_wait_time < remaining_time)
+                    {
+                        wait_time = new_wait_time;
+                        stay_start_time = now; // 重置起始时间
+                    }
+
+                    initial_group_size = actual_group_size;
+                }
             }
 
             // 检查当前时间是否超过 wait_time
